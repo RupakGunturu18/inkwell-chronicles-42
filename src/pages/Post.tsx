@@ -1,17 +1,20 @@
 import { useParams, Link } from "react-router-dom";
+import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Heart, MessageCircle, Share2, Bookmark, Calendar, Clock, ArrowLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Heart, MessageCircle, Share2, Bookmark, Calendar, Clock, ArrowLeft, Upload } from "lucide-react";
 
 const Post = () => {
   const { id } = useParams();
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   // Mock post data
-  const post = {
+  const [post, setPost] = useState({
     title: "Getting Started with Modern Web Development",
     coverImage: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&h=600&fit=crop",
     author: {
@@ -60,6 +63,25 @@ npm run dev</code></pre>
       <h2>Conclusion</h2>
       <p>Modern web development is more accessible than ever before. With the right tools and understanding of core concepts, anyone can build professional-grade web applications. The key is to start simple, learn continuously, and gradually expand your knowledge.</p>
     `,
+  });
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setSelectedImage(result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSaveImage = () => {
+    if (selectedImage) {
+      setPost(prev => ({ ...prev, coverImage: selectedImage }));
+      setSelectedImage(null);
+    }
   };
 
   return (
@@ -78,13 +100,48 @@ npm run dev</code></pre>
         </div>
 
         {/* Cover Image */}
-        <div className="w-full h-[400px] md:h-[500px] overflow-hidden mt-4">
-          <img
-            src={post.coverImage}
-            alt={post.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <div className="w-full h-[400px] md:h-[500px] overflow-hidden mt-4 cursor-pointer">
+              <img
+                src={post.coverImage}
+                alt={post.title}
+                className="w-full h-full object-cover hover:opacity-90 transition-opacity"
+              />
+            </div>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl">
+            <div className="space-y-4">
+              <img
+                src={selectedImage || post.coverImage}
+                alt={post.title}
+                className="w-full h-auto"
+              />
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label htmlFor="image-upload">
+                  <Button variant="outline" className="gap-2" asChild>
+                    <span>
+                      <Upload className="h-4 w-4" />
+                      Upload New Image
+                    </span>
+                  </Button>
+                </label>
+                {selectedImage && (
+                  <Button onClick={handleSaveImage}>
+                    Save Image
+                  </Button>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         <article className="container mx-auto px-4 py-12 max-w-4xl">
           {/* Tags */}

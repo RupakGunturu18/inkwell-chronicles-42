@@ -24,7 +24,8 @@ const Navbar = () => (
           >
             Write
           </button>
-          <button className="px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+          <button onClick={() => window.location.href = '/signup'}
+          className="px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
             Sign In
           </button>
         </div>

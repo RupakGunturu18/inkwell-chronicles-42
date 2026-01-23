@@ -12,8 +12,27 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "react-toastify";
-import { Camera, Loader2, Check, X, Edit, Trash2, Eye, FileText, Settings, LayoutGrid } from "lucide-react";
+import { Camera, Loader2, Check, X, Edit, Trash2, Eye, FileText, Settings, LayoutGrid, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SkeletonPost, ProfileSkeleton } from "@/components/SkeletonPost";
+import { compressImage } from "@/lib/utils";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -25,6 +44,7 @@ const Profile = () => {
   const [myPosts, setMyPosts] = useState<any[]>([]);
   const [myDrafts, setMyDrafts] = useState<any[]>([]);
   const [fetchingPosts, setFetchingPosts] = useState(true);
+  const [fetchingDrafts, setFetchingDrafts] = useState(false);
   const [fetchError, setFetchError] = useState(false);
 
   // Profile form state
@@ -46,6 +66,40 @@ const Profile = () => {
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
+    // Moved fetch calls to separate tab-aware functions
+  }, [user]);
+
+  const fetchUserPosts = async () => {
+    setFetchingPosts(true);
+    try {
+      const posts = await postService.getMyPosts();
+      setMyPosts(posts);
+    } catch (error: any) {
+      console.error("Error fetching my posts:", error);
+      if (error.code === 'ECONNABORTED') {
+        setTimeout(fetchUserPosts, 3000); // Retry after 3s
+      }
+    } finally {
+      setFetchingPosts(false);
+    }
+  };
+
+  const fetchUserDrafts = async () => {
+    setFetchingDrafts(true);
+    try {
+      const drafts = await postService.getUserDrafts();
+      setMyDrafts(drafts);
+    } catch (error: any) {
+      console.error("Error fetching drafts:", error);
+      if (error.code === 'ECONNABORTED') {
+        setTimeout(fetchUserDrafts, 3000); // Retry after 3s
+      }
+    } finally {
+      setFetchingDrafts(false);
+    }
+  };
+
+  useEffect(() => {
     if (user) {
       setProfileData({
         name: user.name,
@@ -53,29 +107,9 @@ const Profile = () => {
         bio: user.bio || "",
         profileImage: user.profileImage || "",
       });
-      fetchUserContent();
+      fetchUserPosts(); // Only fetch posts by default
     }
   }, [user]);
-
-  const fetchUserContent = async () => {
-    setFetchingPosts(true);
-    setFetchError(false);
-    try {
-      const [posts, drafts] = await Promise.all([
-        postService.getMyPosts(),
-        postService.getUserDrafts()
-      ]);
-      setMyPosts(posts);
-      setMyDrafts(drafts);
-    } catch (error: any) {
-      console.error("Error fetching user content:", error);
-      setFetchError(true);
-      const msg = error.response?.data?.error || error.response?.data?.message || "Internal Server Error";
-      toast.error(`Error: ${msg}`);
-    } finally {
-      setFetchingPosts(false);
-    }
-  };
 
   const handleDeletePost = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
@@ -83,7 +117,7 @@ const Profile = () => {
     try {
       await postService.deletePost(id);
       toast.success("Post deleted");
-      fetchUserContent();
+      fetchUserPosts(); // Refresh active view
     } catch (error) {
       toast.error("Failed to delete post");
     }
@@ -157,49 +191,53 @@ const Profile = () => {
   const PostGrid = ({ items, type }: { items: any[], type: 'post' | 'draft' }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
       {items.map((item) => (
-        <Card key={item._id} className="overflow-hidden group border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-[0.98] duration-200 rounded-2xl">
-          <div className="relative h-44 sm:h-48 overflow-hidden">
+        <Card key={item._id} className="overflow-hidden group border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-[0.98] duration-200 rounded-2xl relative">
+          <div
+            className="relative aspect-[3/2] overflow-hidden cursor-pointer"
+            onClick={() => navigate(`/post/${item._id}`)}
+          >
             <img
-              src={item.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500&h=250&fit=crop"}
+              src={item.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500&h=333&fit=crop"}
               alt={item.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               style={{ objectPosition: `50% ${item.coverImagePosition || 50}%` }}
             />
-            {/* Desktop Overlay Actions */}
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 hidden sm:flex items-center justify-center gap-3 transition-opacity">
-              {type === 'post' && (
-                <Button size="icon" variant="secondary" onClick={() => navigate(`/post/${item._id}`)} className="h-10 w-10 rounded-full">
-                  <Eye className="w-5 h-5" />
-                </Button>
-              )}
-              <Button size="icon" variant="secondary" onClick={() => navigate(`/edit/${item._id}`)} className="h-10 w-10 rounded-full">
-                <Edit className="w-5 h-5" />
-              </Button>
-              <Button size="icon" variant="destructive" onClick={() => handleDeletePost(item._id)} className="h-10 w-10 rounded-full">
-                <Trash2 className="w-5 h-5" />
-              </Button>
-            </div>
           </div>
-          <CardHeader className="p-4 bg-white">
-            <CardTitle className="text-lg md:text-xl font-bold line-clamp-1 text-slate-900">{item.title}</CardTitle>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-slate-500 text-xs">
-                {new Date(item.createdAt).toLocaleDateString()} • {item.tags?.[0] || 'Article'}
-              </p>
-              {/* Mobile quick actions */}
-              <div className="flex sm:hidden gap-1">
-                {type === 'post' && (
-                  <Button size="sm" variant="ghost" onClick={() => navigate(`/post/${item._id}`)} className="h-8 w-8 p-0">
-                    <Eye className="w-4 h-4 text-slate-400" />
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => navigate(`/edit/${item._id}`)} className="h-8 w-8 p-0">
-                  <Edit className="w-4 h-4 text-slate-400" />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => handleDeletePost(item._id)} className="h-8 w-8 p-0">
-                  <Trash2 className="w-4 h-4 text-red-400" />
-                </Button>
+          <CardHeader className="p-4 bg-white relative">
+            <div className="flex justify-between items-start">
+              <CardTitle
+                className="text-lg font-bold line-clamp-2 text-slate-900 pr-8 cursor-pointer hover:text-blue-600 transition-colors"
+                onClick={() => navigate(`/post/${item._id}`)}
+              >
+                {item.title}
+              </CardTitle>
+              <div className="absolute top-4 right-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                      <MoreHorizontal className="w-5 h-5 text-slate-400" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                    {type === 'post' && (
+                      <DropdownMenuItem onClick={() => navigate(`/post/${item._id}`)} className="cursor-pointer">
+                        <Eye className="w-4 h-4 mr-2" /> View
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={() => navigate(`/edit/${item._id}`)} className="cursor-pointer">
+                      <Edit className="w-4 h-4 mr-2" /> Edit
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeletePost(item._id)} className="cursor-pointer text-red-600 focus:text-red-600">
+                      <Trash2 className="w-4 h-4 mr-2" /> Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
+            </div>
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-slate-500 text-[10px] font-medium uppercase tracking-wider">
+                {formatDate(item.createdAt)} • {item.tags?.[0] || (type === 'draft' ? 'Draft' : 'Article')}
+              </p>
             </div>
           </CardHeader>
         </Card>
@@ -214,8 +252,9 @@ const Profile = () => {
     if (file) {
       setIsUploading(true);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setProfileData({ ...profileData, profileImage: e.target?.result as string });
+      reader.onload = async (e) => {
+        const compressed = await compressImage(e.target?.result as string, 400, 0.5);
+        setProfileData({ ...profileData, profileImage: compressed });
         setIsUploading(false);
         toast.success("Image uploaded!");
       };
@@ -238,9 +277,9 @@ const Profile = () => {
           <div className="container mx-auto px-4 py-16">
             <div className="flex flex-col md:flex-row items-center gap-10 text-center md:text-left">
               <div className="relative group">
-                <Avatar className="h-32 w-32 md:h-44 md:w-44 border-4 md:border-8 border-slate-50 shadow-2xl transition-transform group-hover:scale-105 duration-300">
-                  <AvatarImage src={profileData.profileImage || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop"} alt={user?.name} />
-                  <AvatarFallback className="text-4xl">{user?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                <Avatar className="h-32 w-32 md:h-44 md:w-44 border-4 md:border-8 border-slate-50 shadow-2xl transition-transform group-hover:scale-105 duration-300 aspect-square overflow-hidden rounded-full">
+                  <AvatarImage src={profileData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || 'U'}`} alt={user?.name} className="object-cover w-full h-full" />
+                  <AvatarFallback className="text-4xl rounded-full">{user?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                 </Avatar>
                 <Button
                   size="icon"
@@ -271,7 +310,10 @@ const Profile = () => {
 
         {/* Tabs Section */}
         <div className="container mx-auto px-4 py-12">
-          <Tabs defaultValue="posts" className="w-full">
+          <Tabs defaultValue="posts" className="w-full" onValueChange={(val) => {
+            if (val === 'posts' && myPosts.length === 0) fetchUserPosts();
+            if (val === 'drafts' && myDrafts.length === 0) fetchUserDrafts();
+          }}>
             <div className="overflow-x-auto pb-4 -mx-4 px-4 md:overflow-visible md:pb-0 md:mx-0 md:px-0 scrollbar-hide">
               <TabsList className="flex w-max md:w-full max-w-2xl lg:max-w-2xl bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 mb-8 md:mb-12">
                 <TabsTrigger value="posts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
@@ -295,7 +337,7 @@ const Profile = () => {
               ) : fetchError ? (
                 <div className="text-center py-24 bg-white rounded-3xl border-2 border-red-50 border-dashed">
                   <p className="text-red-400 text-xl font-medium mb-4">Failed to load posts.</p>
-                  <Button variant="outline" onClick={fetchUserContent} className="rounded-xl">Try Again</Button>
+                  <Button variant="outline" onClick={fetchUserPosts} className="rounded-xl">Try Again</Button>
                 </div>
               ) : myPosts.length > 0 ? (
                 <PostGrid items={myPosts} type="post" />
@@ -308,13 +350,8 @@ const Profile = () => {
             </TabsContent>
 
             <TabsContent value="drafts" className="animate-fade-in outline-none">
-              {fetchingPosts ? (
+              {fetchingDrafts ? (
                 <ProfileSkeleton />
-              ) : fetchError ? (
-                <div className="text-center py-24 bg-white rounded-3xl border-2 border-red-50 border-dashed">
-                  <p className="text-red-400 text-xl font-medium mb-4">Failed to load drafts.</p>
-                  <Button variant="outline" onClick={fetchUserContent} className="rounded-xl">Try Again</Button>
-                </div>
               ) : myDrafts.length > 0 ? (
                 <PostGrid items={myDrafts} type="draft" />
               ) : (

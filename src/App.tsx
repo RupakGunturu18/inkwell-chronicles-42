@@ -36,7 +36,7 @@ const App = () => (
           pauseOnHover
           theme="light"
         />
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true }}>
           <Routes>
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/post/:id" element={<ProtectedRoute><Post /></ProtectedRoute>} />

@@ -4,8 +4,10 @@ const Post = require('../models/Post');
 exports.getAllPosts = async (req, res) => {
   try {
     const posts = await Post.find({ status: 'published' })
-      .select('-content')
+      .populate('authorId', 'name username profileImage')
+      .select('title author authorId createdAt tags coverImage coverImagePosition')
       .sort({ createdAt: -1 })
+      .limit(10)
       .lean();
     res.status(200).json(posts);
   } catch (error) {
@@ -18,6 +20,7 @@ exports.getAllPosts = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
+      .populate('authorId', 'name username profileImage bio')
       .populate('comments.user', 'name username profileImage');
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
@@ -38,8 +41,10 @@ exports.getUserDrafts = async (req, res) => {
       authorId: req.user._id,
       status: 'draft'
     })
-      .select('-content')
+      .populate('authorId', 'name username profileImage')
+      .select('title author authorId createdAt tags coverImage coverImagePosition')
       .sort({ createdAt: -1 })
+      .limit(10)
       .lean();
     res.status(200).json(drafts);
   } catch (error) {
@@ -59,8 +64,10 @@ exports.getMyPosts = async (req, res) => {
       authorId: req.user._id,
       status: 'published'
     })
-      .select('-content')
+      .populate('authorId', 'name username profileImage')
+      .select('title author authorId createdAt tags coverImage coverImagePosition')
       .sort({ createdAt: -1 })
+      .limit(10)
       .lean();
     res.status(200).json(posts);
   } catch (error) {

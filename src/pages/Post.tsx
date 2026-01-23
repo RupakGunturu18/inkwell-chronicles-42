@@ -10,6 +10,18 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar, Clock, ArrowLeft, Edit } from "lucide-react";
 import { toast } from "react-toastify";
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
 const Post = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -24,17 +36,19 @@ const Post = () => {
   const fetchPost = async () => {
     try {
       const data = await postService.getPostById(id!);
+      const postAuthorId = typeof data.authorId === 'object' ? data.authorId?._id : data.authorId;
+      const isCurrentUser = user && (user.id === postAuthorId);
+
       setPost({
         ...data,
-        publishedAt: new Date(data.createdAt).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        readTime: `${Math.ceil(data.content.split(' ').length / 200)} min read`,
+        publishedAt: formatDate(data.createdAt),
+        readTime: `${Math.ceil((data.content || '').split(' ').length / 200) || 1} min read`,
         authorData: {
-          name: data.author,
-          avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
+          name: data.authorId?.name || data.author,
+          avatar: (isCurrentUser && user.profileImage)
+            ? user.profileImage
+            : (data.authorId?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${data.authorId?.name || data.author || 'User'}`),
+          bio: data.authorId?.bio || "",
         }
       });
     } catch (error) {
@@ -69,12 +83,14 @@ const Post = () => {
 
       <main className="flex-1">
         <div className="container mx-auto px-4 pt-6 flex justify-between items-center max-w-4xl">
-          <Link to="/">
-            <Button variant="ghost" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </Button>
-          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate(-1)}
+            className="rounded-full hover:bg-white hover:shadow-sm"
+          >
+            <ArrowLeft className="h-6 w-6 text-slate-600" />
+          </Button>
           {isAuthor && (
             <Button
               variant="outline"
@@ -111,9 +127,9 @@ const Post = () => {
 
           <div className="flex items-center gap-6 mb-8 text-sm text-slate-500 font-medium pb-8 border-b border-slate-100">
             <div className="flex items-center gap-4">
-              <Avatar className="h-12 w-12 shadow-sm border border-slate-100">
-                <AvatarImage src={post.authorData.avatar} alt={post.authorData.name} />
-                <AvatarFallback>{post.authorData.name?.[0]}</AvatarFallback>
+              <Avatar className="h-12 w-12 shadow-sm border border-slate-100 aspect-square overflow-hidden rounded-full">
+                <AvatarImage src={post.authorData.avatar} alt={post.authorData.name} className="object-cover w-full h-full" />
+                <AvatarFallback className="rounded-full">{post.authorData.name?.[0]}</AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-bold text-slate-900 text-base">{post.authorData.name}</p>
@@ -136,13 +152,18 @@ const Post = () => {
           <Separator className="my-16" />
 
           <div className="bg-slate-50 rounded-2xl p-8 border border-slate-100 flex items-center gap-6">
-            <Avatar className="h-16 w-16 shadow-md border border-white">
-              <AvatarImage src={post.authorData.avatar} alt={post.authorData.name} />
-              <AvatarFallback>{post.authorData.name?.[0]}</AvatarFallback>
+            <Avatar className="h-16 w-16 shadow-md border border-white aspect-square overflow-hidden rounded-full">
+              <AvatarImage src={post.authorData.avatar} alt={post.authorData.name} className="object-cover w-full h-full" />
+              <AvatarFallback className="rounded-full">{post.authorData.name?.[0]}</AvatarFallback>
             </Avatar>
             <div>
               <h3 className="text-xl font-bold text-slate-900">About the Author</h3>
               <p className="text-slate-600 font-medium">{post.authorData.name}</p>
+              {post.authorData.bio && (
+                <p className="text-slate-500 text-sm mt-2 leading-relaxed italic border-l-2 border-slate-200 pl-4">
+                  {post.authorData.bio}
+                </p>
+              )}
             </div>
           </div>
         </article>

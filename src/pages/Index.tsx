@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, TrendingUp, Sparkles, ArrowRight, Clock, Calendar, Filter } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,18 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "react-router-dom";
 import { postService } from "@/services/postService";
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+};
 
 const BlogCard = ({ post }: { post: any }) => (
   <Link to={`/post/${post.id}`}>
@@ -38,9 +51,9 @@ const BlogCard = ({ post }: { post: any }) => (
       </div>
       <div className="p-6 flex-1 flex flex-col">
         <div className="flex items-center space-x-3 mb-4">
-          <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
-            <AvatarImage src={post.author.avatar} alt={post.author.name} />
-            <AvatarFallback>{post.author.name?.[0]}</AvatarFallback>
+          <Avatar className="h-9 w-9 border border-slate-100 shadow-sm aspect-square overflow-hidden rounded-full">
+            <AvatarImage src={post.author.avatar} alt={post.author.name} className="object-cover w-full h-full" />
+            <AvatarFallback className="rounded-full">{post.author.name?.[0]}</AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-slate-900 truncate tracking-tight">{post.author.name}</p>
@@ -67,34 +80,39 @@ const BlogCard = ({ post }: { post: any }) => (
 );
 
 const Index = () => {
+  const { user } = useAuth();
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [myPosts, setMyPosts] = useState<any[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('latest');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPosts = async () => {
+    const fetchAllPosts = async () => {
       try {
         const posts = await postService.getAllPosts();
-        const formattedPosts = posts.map((post: any) => ({
-          id: post._id,
-          title: post.title,
-          excerpt: post.excerpt || (post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...'),
-          coverImage: post.coverImage,
-          coverImagePosition: post.coverImagePosition,
-          author: {
-            name: post.author,
-            avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
-          },
-          publishedAt: new Date(post.createdAt).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          }),
-          readTime: `${Math.ceil(post.content.split(' ').length / 200)} min read`,
-          tags: post.tags?.length > 0 ? post.tags : ['Story'],
-        }));
+        const formattedPosts = posts.map((post: any) => {
+          const postAuthorId = typeof post.authorId === 'object' ? post.authorId?._id : post.authorId;
+          const isCurrentUser = user && (user.id === postAuthorId);
+
+          return {
+            id: post._id,
+            title: post.title,
+            excerpt: post.excerpt || (post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content available.'),
+            coverImage: post.coverImage,
+            coverImagePosition: post.coverImagePosition,
+            author: {
+              name: post.authorId?.name || post.author,
+              avatar: (isCurrentUser && user.profileImage)
+                ? user.profileImage
+                : (post.authorId?.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${post.authorId?.name || post.author || 'User'}`),
+            },
+            publishedAt: formatDate(post.createdAt),
+            readTime: `${Math.ceil((post.content || post.excerpt || '').split(' ').length / 200) || 1} min read`,
+            tags: post.tags?.length > 0 ? post.tags : ['Story'],
+          };
+        });
         setBlogPosts(formattedPosts);
         setFilteredPosts(formattedPosts);
       } catch (error) {
@@ -104,8 +122,27 @@ const Index = () => {
       }
     };
 
-    fetchPosts();
+    fetchAllPosts();
   }, []);
+
+  useEffect(() => {
+    const fetchUserPosts = async () => {
+      if (user) {
+        try {
+          const userPosts = await postService.getMyPosts();
+          setMyPosts(userPosts.slice(0, 3));
+        } catch (e) {
+          console.error("Error fetching my posts:", e);
+          // Auto-retry once after 2 seconds if it's a timeout
+          if (e.code === 'ECONNABORTED') {
+            setTimeout(fetchUserPosts, 2000);
+          }
+        }
+      }
+    };
+
+    fetchUserPosts();
+  }, [user]);
 
   // Handle search
   useEffect(() => {
@@ -124,7 +161,7 @@ const Index = () => {
     if (activeFilter === 'latest') {
       // Already sorted by date (newest first)
     } else if (activeFilter === 'oldest') {
-      filtered = filtered.reverse();
+      filtered = [...filtered].reverse();
     }
 
     setFilteredPosts(filtered);
@@ -203,6 +240,44 @@ const Index = () => {
           <p className="text-center text-sm text-gray-600 mt-4">
             Found {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
           </p>
+        )}
+
+        {/* My Posts Quick Access */}
+        {user && myPosts.length > 0 && !searchQuery && (
+          <div className="mt-16 animate-fade-in">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <div className="w-1 bg-blue-600 h-6 rounded-full"></div>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight">My Recent Posts</h2>
+              </div>
+              <Link to="/profile" className="text-blue-600 font-bold hover:underline text-sm">View all my posts</Link>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myPosts.map((post) => (
+                <Link key={post._id} to={`/post/${post._id}`} className="group block">
+                  <div className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-lg transition-all flex gap-4 h-32 items-center">
+                    <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
+                      <img
+                        src={post.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200&h=200&fit=crop"}
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        style={{ objectPosition: `50% ${post.coverImagePosition || 50}%` }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
+                        {post.title}
+                      </h3>
+                      <p className="text-slate-400 text-[10px] mt-2 font-medium">
+                        {formatDate(post.createdAt)}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <div className="h-px bg-slate-100 w-full mt-12 mb-4"></div>
+          </div>
         )}
       </section>
 

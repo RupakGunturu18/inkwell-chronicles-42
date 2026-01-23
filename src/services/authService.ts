@@ -5,6 +5,7 @@ const API_URL = 'http://localhost:5001/api/auth';
 // Create axios instance
 const api = axios.create({
     baseURL: API_URL,
+    timeout: 30000,
     headers: {
         'Content-Type': 'application/json'
     }

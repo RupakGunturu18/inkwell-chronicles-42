@@ -28,17 +28,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check if user is logged in on mount
-        const currentUser = authService.getCurrentUser();
-        const token = authService.getToken();
+        const initAuth = async () => {
+            const token = authService.getToken();
+            const storedUser = authService.getCurrentUser();
 
-        if (currentUser && token) {
-            setUser(currentUser);
-            // Connect to Socket.IO
-            socketService.connect(token);
-        }
+            if (token) {
+                // If we have a stored user, set it immediately for a fast UI response
+                if (storedUser) setUser(storedUser);
 
-        setLoading(false);
+                try {
+                    // Then fetch the latest data from server
+                    const userProfile = await authService.getUserProfile();
+                    setUser(userProfile);
+                    localStorage.setItem('user', JSON.stringify(userProfile));
+                    socketService.connect(token);
+                } catch (e) {
+                    console.error("Failed to sync profile with server:", e);
+                    if (token) socketService.connect(token);
+                }
+            }
+            setLoading(false);
+        };
+
+        initAuth();
     }, []);
 
     const login = async (emailOrUsername: string, password: string) => {

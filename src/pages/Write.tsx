@@ -5,10 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, Save, Send, Tag, FileText, Loader2 } from "lucide-react";
+import { Upload, X, Save, Send, Tag, FileText, Loader2, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { postService } from "@/services/postService";
 import { toast } from "react-toastify";
+import { compressImage } from "@/lib/utils";
 
 const ImageIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,11 +169,12 @@ const Write = () => {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
               <Button
-                variant="outline"
+                variant="ghost"
+                size="icon"
                 onClick={handleBack}
-                className="border-slate-300 hover:bg-slate-50"
+                className="rounded-full hover:bg-slate-100"
               >
-                Back
+                <ArrowLeft className="h-6 w-6 text-slate-600" />
               </Button>
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <FileText className="w-5 h-5 text-white" />
@@ -294,8 +296,9 @@ const Write = () => {
                     if (file) {
                       setIsUploading(true);
                       const reader = new FileReader();
-                      reader.onload = (e) => {
-                        setCoverImage(e.target?.result as string);
+                      reader.onload = async (e) => {
+                        const compressed = await compressImage(e.target?.result as string);
+                        setCoverImage(compressed);
                         setIsUploading(false);
                         toast.success("Cover image uploaded!");
                       };

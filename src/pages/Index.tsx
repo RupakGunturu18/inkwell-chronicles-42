@@ -18,14 +18,14 @@ const Navbar = () => (
           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <Search className="w-5 h-5 text-gray-600" />
           </button>
-          <button 
+          <button
             onClick={() => window.location.href = '/write'}
             className="px-4 py-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors font-medium"
           >
             Write
           </button>
           <button onClick={() => window.location.href = '/signup'}
-          className="px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
+            className="px-4 py-2 border border-gray-300 rounded-full hover:bg-gray-50 transition-colors">
             Sign In
           </button>
         </div>
@@ -81,11 +81,10 @@ const BlogCard = ({ post }) => (
 const FilterTab = ({ active, children, onClick, icon: Icon }) => (
   <button
     onClick={onClick}
-    className={`flex items-center space-x-2 px-6 py-3 rounded-full font-medium transition-all ${
-      active
+    className={`flex items-center space-x-2 px-6 py-3 rounded-full font-medium transition-all ${active
         ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-    }`}
+      }`}
   >
     <Icon className="w-4 h-4" />
     <span>{children}</span>
@@ -198,7 +197,7 @@ const Index = () => {
             <button className="px-8 py-4 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30">
               Start Reading
             </button>
-            <button 
+            <button
               onClick={() => window.location.href = '/write'}
               className="px-8 py-4 bg-white text-gray-900 rounded-full font-medium hover:bg-gray-100 transition-colors border border-gray-200"
             >
@@ -265,8 +264,8 @@ const Index = () => {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t bg-gray-50">
+      {/* Footer - Hidden as per requirements */}
+      {/* <footer className="border-t bg-gray-50">
         <div className="container mx-auto px-4 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
@@ -306,7 +305,7 @@ const Index = () => {
             <p>© 2025 BlogSpace. All rights reserved.</p>
           </div>
         </div>
-      </footer>
+      </footer> */}
 
       <style>{`
         @keyframes fadeIn {

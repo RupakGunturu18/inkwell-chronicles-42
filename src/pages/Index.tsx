@@ -178,7 +178,7 @@ const Index = () => {
             <Sparkles className="w-4 h-4" />
             <span>Discover amazing stories</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-gray-900">
+          <h1 className="text-4xl md:text-7xl font-bold tracking-tight text-gray-900 leading-tight">
             Where ideas come to{" "}
             <span className="relative inline-block group">
               <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -208,7 +208,7 @@ const Index = () => {
               </svg>
             </span>
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Discover stories, thinking, and expertise from writers on any topic that matters to you.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
@@ -271,9 +271,8 @@ const Index = () => {
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <div className="w-1 bg-blue-600 h-6 rounded-full"></div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight text-left">My Recent Posts</h2>
+                <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight text-left">My Recent Posts</h2>
               </div>
-              <Link to="/profile" className="text-blue-600 font-bold hover:underline text-sm">View all my posts</Link>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {myPosts.map((post) => (
@@ -313,7 +312,7 @@ const Index = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {filteredPosts.map((post, index) => (
+              {filteredPosts.slice(0, 6).map((post, index) => (
                 <div
                   key={post.id}
                   style={{ animationDelay: `${index * 100}ms` }}
@@ -330,12 +329,16 @@ const Index = () => {
               </div>
             )}
 
-            {/* Load More */}
+            {/* View All Posts */}
             {filteredPosts.length > 0 && (
-              <div className="flex justify-center mt-16">
-                <button className="px-8 py-4 bg-white text-gray-900 rounded-full font-medium hover:bg-gray-100 transition-all border border-gray-200 hover:shadow-lg">
-                  Load More Posts
-                </button>
+              <div className="flex justify-center mt-12 mb-8">
+                <Link
+                  to="/profile"
+                  className="px-8 py-3 md:px-10 md:py-4 bg-white text-gray-900 rounded-full font-bold text-sm md:text-base hover:bg-gray-50 transition-all border-2 border-slate-100 hover:border-blue-600/20 hover:shadow-xl shadow-sm flex items-center gap-2 group"
+                >
+                  View all posts
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </div>
             )}
           </>

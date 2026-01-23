@@ -42,8 +42,8 @@ exports.getUserDrafts = async (req, res) => {
       authorId: req.user._id,
       status: 'draft'
     })
-      .populate('authorId', 'name username profileImage')
-      .select('title author authorId createdAt tags coverImage coverImagePosition')
+      .populate('authorId', 'name profileImage')
+      .select('title authorId createdAt tags coverImage')
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
@@ -65,8 +65,8 @@ exports.getMyPosts = async (req, res) => {
       authorId: req.user._id,
       status: 'published'
     })
-      .populate('authorId', 'name username profileImage')
-      .select('title author authorId createdAt tags coverImage coverImagePosition')
+      .populate('authorId', 'name profileImage')
+      .select('title authorId createdAt tags coverImage')
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();

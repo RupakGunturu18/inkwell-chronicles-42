@@ -46,7 +46,9 @@ exports.signup = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                profileImage: user.profileImage,
+                bio: user.bio
             }
         });
     } catch (error) {
@@ -68,13 +70,13 @@ exports.login = async (req, res) => {
         }).select('+password');
 
         if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Account not found. Please sign up first!' });
         }
 
         // Check password
         const isMatch = await user.comparePassword(password);
         if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+            return res.status(401).json({ message: 'Invalid password' });
         }
 
         // Generate token
@@ -87,7 +89,9 @@ exports.login = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 username: user.username,
-                email: user.email
+                email: user.email,
+                profileImage: user.profileImage,
+                bio: user.bio
             }
         });
     } catch (error) {
@@ -253,3 +257,120 @@ exports.protect = async (req, res, next) => {
         res.status(500).json({ message: 'Server error' });
     }
 };
+
+// @desc    Get current user profile
+// @route   GET /api/auth/profile
+// @access  Private
+exports.getUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({
+            success: true,
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                profileImage: user.profileImage,
+                bio: user.bio,
+                createdAt: user.createdAt
+            }
+        });
+    } catch (error) {
+        console.error('Get profile error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Update user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, username, bio, profileImage } = req.body;
+        const user = await User.findById(req.user.id);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Check if username is being changed and if it's already taken
+        if (username && username !== user.username) {
+            const existingUser = await User.findOne({ username: username.toLowerCase() });
+            if (existingUser) {
+                return res.status(400).json({ message: 'Username already taken' });
+            }
+            user.username = username.toLowerCase();
+        }
+
+        // Update fields
+        if (name) user.name = name;
+        if (bio !== undefined) user.bio = bio;
+        if (profileImage !== undefined) user.profileImage = profileImage;
+
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Profile updated successfully',
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                profileImage: user.profileImage,
+                bio: user.bio
+            }
+        });
+    } catch (error) {
+        console.error('Update profile error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// @desc    Change password
+// @route   PUT /api/auth/change-password
+// @access  Private
+exports.changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: 'Please provide current and new password' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ message: 'New password must be at least 6 characters' });
+        }
+
+        const user = await User.findById(req.user.id).select('+password');
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Verify current password
+        const isMatch = await user.comparePassword(currentPassword);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Current password is incorrect' });
+        }
+
+        // Set new password
+        user.password = newPassword;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: 'Password changed successfully'
+        });
+    } catch (error) {
+        console.error('Change password error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+

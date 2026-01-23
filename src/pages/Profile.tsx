@@ -1,75 +1,268 @@
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { authService } from "@/services/authService";
+import { postService } from "@/services/postService";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
-import { BlogCard } from "@/components/BlogCard";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, MapPin, Link as LinkIcon } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "react-toastify";
+import { Camera, Loader2, Check, X, Edit, Trash2, Eye, FileText, Settings, LayoutGrid } from "lucide-react";
+import { SkeletonPost, ProfileSkeleton } from "@/components/SkeletonPost";
 
 const Profile = () => {
-  const user = {
-    name: "Sarah Chen",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    bio: "Full-stack developer passionate about creating elegant solutions to complex problems. Love writing about web development, design, and technology.",
-    location: "San Francisco, CA",
-    website: "sarahchen.dev",
-    joinedDate: "January 2024",
+  const navigate = useNavigate();
+  const { user, updateUser } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+
+  const [myPosts, setMyPosts] = useState<any[]>([]);
+  const [myDrafts, setMyDrafts] = useState<any[]>([]);
+  const [fetchingPosts, setFetchingPosts] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
+
+  // Profile form state
+  const [profileData, setProfileData] = useState({
+    name: user?.name || "",
+    username: user?.username || "",
+    bio: user?.bio || "",
+    profileImage: user?.profileImage || "",
+  });
+
+  // Password form state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name,
+        username: user.username,
+        bio: user.bio || "",
+        profileImage: user.profileImage || "",
+      });
+      fetchUserContent();
+    }
+  }, [user]);
+
+  const fetchUserContent = async () => {
+    setFetchingPosts(true);
+    setFetchError(false);
+    try {
+      const [posts, drafts] = await Promise.all([
+        postService.getMyPosts(),
+        postService.getUserDrafts()
+      ]);
+      setMyPosts(posts);
+      setMyDrafts(drafts);
+    } catch (error: any) {
+      console.error("Error fetching user content:", error);
+      setFetchError(true);
+      const msg = error.response?.data?.error || error.response?.data?.message || "Internal Server Error";
+      toast.error(`Error: ${msg}`);
+    } finally {
+      setFetchingPosts(false);
+    }
   };
 
-  const userPosts = [
-    {
-      id: "1",
-      title: "Getting Started with Modern Web Development",
-      excerpt: "Learn the fundamentals of building modern web applications with React, TypeScript, and cutting-edge tools.",
-      coverImage: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop",
-      author: {
-        name: "Sarah Chen",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      },
-      publishedAt: "Jan 15, 2025",
-      readTime: "5 min",
-      tags: ["Web Dev", "React", "TypeScript"],
-    },
-  ];
+  const handleDeletePost = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) return;
+
+    try {
+      await postService.deletePost(id);
+      toast.success("Post deleted");
+      fetchUserContent();
+    } catch (error) {
+      toast.error("Failed to delete post");
+    }
+  };
+
+  // Check username availability when it changes
+  useEffect(() => {
+    if (profileData.username === user?.username || profileData.username.length < 3) {
+      setUsernameAvailable(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingUsername(true);
+      try {
+        const available = await authService.checkUsername(profileData.username);
+        setUsernameAvailable(available);
+      } catch (error) {
+        setUsernameAvailable(null);
+      } finally {
+        setCheckingUsername(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [profileData.username, user?.username]);
+
+  const handleProfileUpdate = async () => {
+    if (profileData.username !== user?.username && !usernameAvailable) {
+      toast.error("Please choose an available username");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await authService.updateProfile(profileData);
+      updateUser(response.user);
+      toast.success("Profile updated successfully!");
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Failed to update profile";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await authService.changePassword(passwordData.currentPassword, passwordData.newPassword);
+      toast.success("Password changed successfully!");
+      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Failed to change password";
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const PostGrid = ({ items, type }: { items: any[], type: 'post' | 'draft' }) => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      {items.map((item) => (
+        <Card key={item._id} className="overflow-hidden group border-slate-200 shadow-sm hover:shadow-md transition-all active:scale-[0.98] duration-200 rounded-2xl">
+          <div className="relative h-44 sm:h-48 overflow-hidden">
+            <img
+              src={item.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=500&h=250&fit=crop"}
+              alt={item.title}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              style={{ objectPosition: `50% ${item.coverImagePosition || 50}%` }}
+            />
+            {/* Desktop Overlay Actions */}
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 hidden sm:flex items-center justify-center gap-3 transition-opacity">
+              {type === 'post' && (
+                <Button size="icon" variant="secondary" onClick={() => navigate(`/post/${item._id}`)} className="h-10 w-10 rounded-full">
+                  <Eye className="w-5 h-5" />
+                </Button>
+              )}
+              <Button size="icon" variant="secondary" onClick={() => navigate(`/edit/${item._id}`)} className="h-10 w-10 rounded-full">
+                <Edit className="w-5 h-5" />
+              </Button>
+              <Button size="icon" variant="destructive" onClick={() => handleDeletePost(item._id)} className="h-10 w-10 rounded-full">
+                <Trash2 className="w-5 h-5" />
+              </Button>
+            </div>
+          </div>
+          <CardHeader className="p-4 bg-white">
+            <CardTitle className="text-lg md:text-xl font-bold line-clamp-1 text-slate-900">{item.title}</CardTitle>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-slate-500 text-xs">
+                {new Date(item.createdAt).toLocaleDateString()} • {item.tags?.[0] || 'Article'}
+              </p>
+              {/* Mobile quick actions */}
+              <div className="flex sm:hidden gap-1">
+                {type === 'post' && (
+                  <Button size="sm" variant="ghost" onClick={() => navigate(`/post/${item._id}`)} className="h-8 w-8 p-0">
+                    <Eye className="w-4 h-4 text-slate-400" />
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => navigate(`/edit/${item._id}`)} className="h-8 w-8 p-0">
+                  <Edit className="w-4 h-4 text-slate-400" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => handleDeletePost(item._id)} className="h-8 w-8 p-0">
+                  <Trash2 className="w-4 h-4 text-red-400" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const avatarSeeds = ["Felix", "Aria", "Leo", "Luna", "Milo", "Maya"];
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsUploading(true);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfileData({ ...profileData, profileImage: e.target?.result as string });
+        setIsUploading(false);
+        toast.success("Image uploaded!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const selectAvatar = (seed: string) => {
+    const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+    setProfileData({ ...profileData, profileImage: url });
+  };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
       <main className="flex-1">
         {/* Profile Header */}
-        <div className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 border-b border-border">
-          <div className="container mx-auto px-4 py-12">
-            <div className="flex flex-col md:flex-row items-start gap-6 animate-fade-in">
-              <Avatar className="h-24 w-24 border-4 border-background shadow-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback>{user.name[0]}</AvatarFallback>
-              </Avatar>
+        <div className="bg-white border-b border-slate-200">
+          <div className="container mx-auto px-4 py-16">
+            <div className="flex flex-col md:flex-row items-center gap-10 text-center md:text-left">
+              <div className="relative group">
+                <Avatar className="h-32 w-32 md:h-44 md:w-44 border-4 md:border-8 border-slate-50 shadow-2xl transition-transform group-hover:scale-105 duration-300">
+                  <AvatarImage src={profileData.profileImage || "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop"} alt={user?.name} />
+                  <AvatarFallback className="text-4xl">{user?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                </Avatar>
+                <Button
+                  size="icon"
+                  className="absolute bottom-2 right-2 rounded-full shadow-xl bg-blue-600 hover:bg-blue-700 h-10 w-10 md:h-12 md:w-12 border-4 border-white"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Camera className="w-5 h-5" />}
+                </Button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+              </div>
 
               <div className="flex-1 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h1 className="text-3xl font-bold mb-2">{user.name}</h1>
-                    <p className="text-muted-foreground max-w-2xl">{user.bio}</p>
-                  </div>
-                  <Button variant="outline" className="gap-2">
-                    <Settings className="h-4 w-4" />
-                    Edit Profile
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4" />
-                    {user.location}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <LinkIcon className="h-4 w-4" />
-                    <a href="#" className="hover:text-primary transition-colors">
-                      {user.website}
-                    </a>
-                  </div>
-                  <div>Joined {user.joinedDate}</div>
+                <div>
+                  <h1 className="text-5xl font-black text-slate-900 mb-2 tracking-tight">{user?.name}</h1>
+                  <p className="text-xl text-blue-600 font-bold tracking-tight">@{user?.username}</p>
+                  {user?.bio && <p className="text-slate-600 mt-6 max-w-2xl text-lg leading-relaxed font-medium">{user.bio}</p>}
                 </div>
               </div>
             </div>
@@ -77,38 +270,205 @@ const Profile = () => {
         </div>
 
         {/* Tabs Section */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-12">
           <Tabs defaultValue="posts" className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-3 mb-8">
-              <TabsTrigger value="posts">My Posts</TabsTrigger>
-              <TabsTrigger value="drafts">Drafts</TabsTrigger>
-              <TabsTrigger value="liked">Liked</TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto pb-4 -mx-4 px-4 md:overflow-visible md:pb-0 md:mx-0 md:px-0 scrollbar-hide">
+              <TabsList className="flex w-max md:w-full max-w-2xl lg:max-w-2xl bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 mb-8 md:mb-12">
+                <TabsTrigger value="posts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
+                  <LayoutGrid className="w-4 h-4 mr-2" />
+                  My Posts ({myPosts.length})
+                </TabsTrigger>
+                <TabsTrigger value="drafts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Drafts ({myDrafts.length})
+                </TabsTrigger>
+                <TabsTrigger value="settings" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-            <TabsContent value="posts" className="animate-fade-in">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {userPosts.map((post) => (
-                  <BlogCard key={post.id} {...post} />
-                ))}
-              </div>
+            <TabsContent value="posts" className="animate-fade-in outline-none">
+              {fetchingPosts ? (
+                <ProfileSkeleton />
+              ) : fetchError ? (
+                <div className="text-center py-24 bg-white rounded-3xl border-2 border-red-50 border-dashed">
+                  <p className="text-red-400 text-xl font-medium mb-4">Failed to load posts.</p>
+                  <Button variant="outline" onClick={fetchUserContent} className="rounded-xl">Try Again</Button>
+                </div>
+              ) : myPosts.length > 0 ? (
+                <PostGrid items={myPosts} type="post" />
+              ) : (
+                <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                  <p className="text-slate-400 text-xl font-medium">No published stories yet.</p>
+                  <Button variant="link" onClick={() => navigate('/write')} className="text-blue-600 font-black text-lg mt-2 p-0 h-auto">Write your first story</Button>
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="drafts" className="animate-fade-in">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No drafts yet</p>
-              </div>
+            <TabsContent value="drafts" className="animate-fade-in outline-none">
+              {fetchingPosts ? (
+                <ProfileSkeleton />
+              ) : fetchError ? (
+                <div className="text-center py-24 bg-white rounded-3xl border-2 border-red-50 border-dashed">
+                  <p className="text-red-400 text-xl font-medium mb-4">Failed to load drafts.</p>
+                  <Button variant="outline" onClick={fetchUserContent} className="rounded-xl">Try Again</Button>
+                </div>
+              ) : myDrafts.length > 0 ? (
+                <PostGrid items={myDrafts} type="draft" />
+              ) : (
+                <div className="text-center py-24 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                  <p className="text-slate-400 text-xl font-medium">Your drafts folder is empty.</p>
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="liked" className="animate-fade-in">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No liked posts yet</p>
+            <TabsContent value="settings" className="animate-fade-in">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+                {/* Profile Information */}
+                <Card className="shadow-lg border-none rounded-3xl overflow-hidden">
+                  <CardHeader className="bg-slate-50 border-b border-slate-100 p-8">
+                    <CardTitle className="text-2xl font-black text-slate-900">Profile Settings</CardTitle>
+                    <p className="text-slate-500 font-medium">Change how you appear on Inkwell</p>
+                  </CardHeader>
+                  <CardContent className="p-8 space-y-8">
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        <Label className="text-sm font-bold text-slate-700 uppercase tracking-widest">Profile Image</Label>
+                        <div className="flex flex-wrap gap-3 p-4 bg-slate-50 rounded-2xl">
+                          {avatarSeeds.map((seed) => (
+                            <button
+                              key={seed}
+                              onClick={() => selectAvatar(seed)}
+                              className={`h-12 w-12 rounded-full border-2 transition-all hover:scale-110 ${profileData.profileImage.includes(seed) ? 'border-blue-600 scale-110 shadow-md' : 'border-transparent'
+                                }`}
+                            >
+                              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`} alt={seed} className="rounded-full" />
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="h-12 w-12 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center hover:border-blue-600 transition-all text-slate-400"
+                          >
+                            <Camera className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label htmlFor="perf-name" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Full Name</Label>
+                        <Input
+                          id="perf-name"
+                          value={profileData.name}
+                          onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                          className="h-14 rounded-xl border-slate-200 focus:ring-blue-500 text-lg font-medium"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label htmlFor="perf-username" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Username</Label>
+                        <div className="relative">
+                          <Input
+                            id="perf-username"
+                            value={profileData.username}
+                            onChange={(e) => setProfileData({ ...profileData, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })}
+                            className="h-14 rounded-xl border-slate-200 focus:ring-blue-500 text-lg font-medium pr-12"
+                          />
+                          {profileData.username !== user?.username && profileData.username.length >= 3 && (
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                              {checkingUsername ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                              ) : usernameAvailable ? (
+                                <Check className="h-5 w-5 text-green-500" />
+                              ) : (
+                                <X className="h-5 w-5 text-red-500" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label htmlFor="perf-bio" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Bio</Label>
+                        <Textarea
+                          id="perf-bio"
+                          value={profileData.bio}
+                          onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                          rows={4}
+                          className="resize-none rounded-xl border-slate-200 focus:ring-blue-500 text-lg"
+                          placeholder="Tell us your story..."
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={handleProfileUpdate}
+                      disabled={loading || (profileData.username !== user?.username && !usernameAvailable)}
+                      className="w-full h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-lg font-bold shadow-lg shadow-blue-200 transition-all"
+                    >
+                      {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Save Changes"}
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Change Password */}
+                <Card className="shadow-lg border-none rounded-3xl overflow-hidden">
+                  <CardHeader className="bg-slate-50 border-b border-slate-100 p-8">
+                    <CardTitle className="text-2xl font-black text-slate-900">Security Settings</CardTitle>
+                    <p className="text-slate-500 font-medium">Protect your account with a strong password</p>
+                  </CardHeader>
+                  <CardContent className="p-8 space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="current-pass" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Current Password</Label>
+                      <Input
+                        id="current-pass"
+                        type="password"
+                        value={passwordData.currentPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                        className="h-14 rounded-xl border-slate-200 focus:ring-blue-500"
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="new-pass" className="text-sm font-bold text-slate-700 uppercase tracking-widest">New Password</Label>
+                      <Input
+                        id="new-pass"
+                        type="password"
+                        value={passwordData.newPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                        className="h-14 rounded-xl border-slate-200 focus:ring-blue-500"
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="confirm-pass" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Confirm New Password</Label>
+                      <Input
+                        id="confirm-pass"
+                        type="password"
+                        value={passwordData.confirmPassword}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                        className="h-14 rounded-xl border-slate-200 focus:ring-blue-500"
+                        placeholder="••••••••"
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handlePasswordChange}
+                      disabled={loading || !passwordData.currentPassword || !passwordData.newPassword}
+                      className="w-full h-14 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-xl text-lg font-bold transition-all mt-4"
+                    >
+                      {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : "Update Password"}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
           </Tabs>
         </div>
       </main>
-
-      <Footer />
     </div>
   );
 };

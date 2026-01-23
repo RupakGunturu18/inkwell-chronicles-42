@@ -41,6 +41,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/post/:id" element={<ProtectedRoute><Post /></ProtectedRoute>} />
             <Route path="/write" element={<ProtectedRoute><Write /></ProtectedRoute>} />
+            <Route path="/edit/:id" element={<ProtectedRoute><Write /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Login />} />

@@ -91,5 +91,26 @@ export const authService = {
     // Check if authenticated
     isAuthenticated: () => {
         return !!localStorage.getItem('token');
+    },
+
+    // Update profile
+    updateProfile: async (data: { name?: string; username?: string; bio?: string; profileImage?: string }) => {
+        const response = await api.put('/profile', data);
+        if (response.data.user) {
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+        }
+        return response.data;
+    },
+
+    // Change password
+    changePassword: async (currentPassword: string, newPassword: string) => {
+        const response = await api.put('/change-password', { currentPassword, newPassword });
+        return response.data;
+    },
+
+    // Get user profile
+    getUserProfile: async () => {
+        const response = await api.get('/profile');
+        return response.data.user;
     }
 };

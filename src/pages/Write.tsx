@@ -1,33 +1,92 @@
-import { useState, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Upload, X, Save, Send, Tag, FileText } from "lucide-react";
+import { Upload, X, Save, Send, Tag, FileText, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { postService } from "@/services/postService";
+import { toast } from "react-toastify";
 
-const ImageIcon = ({ className }) => (
+const ImageIcon = ({ className }: { className?: string }) => (
   <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
   </svg>
 );
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 const Write = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const { user } = useAuth();
+
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [tags, setTags] = useState([]);
+  const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [coverImage, setCoverImage] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
-  const [notification, setNotification] = useState({ show: false, message: "", type: "" });
-  const fileInputRef = useRef(null);
+  const [imagePosition, setImagePosition] = useState(50);
 
-  const showNotification = (message, type = "success") => {
-    setNotification({ show: true, message, type });
-    setTimeout(() => setNotification({ show: false, message: "", type: "" }), 3000);
-  };
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(!!id);
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load post if editing
+  useEffect(() => {
+    if (id) {
+      const fetchPost = async () => {
+        try {
+          const post = await postService.getPostById(id);
+          setTitle(post.title);
+          setContent(post.content);
+          setTags(post.tags || []);
+          setCoverImage(post.coverImage || "");
+          setImagePosition(post.coverImagePosition || 50);
+        } catch (error) {
+          console.error("Error fetching post for edit:", error);
+          toast.error("Failed to load post for editing");
+          navigate("/write");
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchPost();
+    }
+  }, [id, navigate]);
+
+  // Track unsaved changes
+  useEffect(() => {
+    const hasContent = title.trim() || content.trim() || tags.length > 0 || coverImage;
+    setHasUnsavedChanges(!!hasContent);
+  }, [title, content, tags, coverImage]);
+
+  // Warn before browser closed
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -36,53 +95,67 @@ const Write = () => {
     }
   };
 
-  const removeTag = (tagToRemove) => {
+  const removeTag = (tagToRemove: string) => {
     setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  const handlePublish = async () => {
-    if (!title.trim() || !content.trim()) {
-      showNotification("Please fill in title and content", "error");
+  const handleSave = async (status: 'draft' | 'published') => {
+    // Auto-add pending tag
+    let currentTags = [...tags];
+    if (tagInput.trim() && !currentTags.includes(tagInput.trim())) {
+      currentTags.push(tagInput.trim());
+      setTags(currentTags);
+      setTagInput("");
+    }
+
+    if (!title.trim() && status === 'published') {
+      toast.error("Please provide a title");
       return;
     }
 
-    const newPost = {
-      title: title.trim(),
+    setIsSubmitting(true);
+    const postData = {
+      title: title.trim() || "Untitled Draft",
       content: content.trim(),
-      author: "Current User",
-      tags,
+      tags: currentTags,
       coverImage,
+      coverImagePosition: imagePosition,
+      status
     };
 
     try {
-      const response = await fetch('http://localhost:5000/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newPost),
-      });
-
-      if (response.ok) {
-        setTitle("");
-        setContent("");
-        setTags([]);
-        setTagInput("");
-        setCoverImage("");
-        showNotification("Post published successfully!");
-        navigate("/");
+      if (id) {
+        await postService.updatePost(id, postData);
+        toast.success(status === 'published' ? "Post updated!" : "Draft updated!");
       } else {
-        showNotification("Failed to publish post", "error");
+        await postService.createPost(postData);
+        toast.success(status === 'published' ? "Post published!" : "Draft saved!");
       }
+      setHasUnsavedChanges(false);
+      navigate(status === 'published' ? "/" : "/profile");
     } catch (error) {
-      console.error('Error publishing post:', error);
-      showNotification("Error publishing post", "error");
+      console.error('Error saving post:', error);
+      toast.error("Failed to save post");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleSaveDraft = () => {
-    showNotification("Draft saved!");
+  const handleBack = () => {
+    if (hasUnsavedChanges) {
+      setShowExitModal(true);
+    } else {
+      navigate(-1);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   const wordCount = content.split(/\s+/).filter(word => word.length > 0).length;
   const readTime = Math.ceil(wordCount / 200);
@@ -96,7 +169,7 @@ const Write = () => {
             <div className="flex items-center space-x-3">
               <Button
                 variant="outline"
-                onClick={() => navigate("/")}
+                onClick={handleBack}
                 className="border-slate-300 hover:bg-slate-50"
               >
                 Back
@@ -108,62 +181,89 @@ const Write = () => {
                 BlogPress
               </Link>
             </div>
-            
-            <div className="flex items-center space-x-3">
+
+            <div className="flex items-center space-x-2 sm:space-x-3">
               <Button
                 variant="outline"
-                onClick={handleSaveDraft}
-                className="border-slate-300 hover:bg-slate-50"
+                onClick={() => handleSave('draft')}
+                disabled={isSubmitting}
+                className="border-slate-300 hover:bg-slate-50 px-2 sm:px-4"
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save Draft
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 sm:mr-2" />}
+                <span className="hidden sm:inline">Save Draft</span>
               </Button>
               <Button
-                onClick={handlePublish}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md"
+                onClick={() => handleSave('published')}
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-md px-2 sm:px-4"
               >
-                <Send className="w-4 h-4 mr-2" />
-                Publish Post
+                {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 sm:mr-2" />}
+                <span className="hidden sm:inline">{id ? "Update Post" : "Publish"}</span>
               </Button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Notification Toast */}
-      {notification.show && (
-        <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-top-2">
-          <div className={`px-4 py-3 rounded-lg shadow-lg ${
-            notification.type === "error" 
-              ? "bg-red-500 text-white" 
-              : "bg-green-500 text-white"
-          }`}>
-            {notification.message}
-          </div>
-        </div>
-      )}
+      {/* Exit Confirmation Modal */}
+      <AlertDialog open={showExitModal} onOpenChange={setShowExitModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes. Would you like to save as draft before leaving?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => navigate("/")}>Discard & Leave</AlertDialogCancel>
+            <AlertDialogAction onClick={() => handleSave('draft')}>Save Draft & Leave</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-4xl mx-auto px-2 sm:px-6 lg:px-8 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
           {/* Cover Image Section */}
           <div className="border-b border-slate-200 bg-slate-50">
             {coverImage ? (
-              <div className="relative h-80 group">
+              <div className="relative h-60 sm:h-80 group">
                 <img
                   src={coverImage}
                   alt="Cover"
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-all"
+                  style={{ objectPosition: `50% ${imagePosition}%` }}
                 />
-                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200">
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={() => setCoverImage("")}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-4">
+                  <div className="bg-white/90 p-4 rounded-lg shadow-xl w-64 space-y-2">
+                    <Label className="text-xs font-semibold flex items-center gap-2">
+                      <Upload className="w-3 h-3 text-slate-500" />
+                      Adjust View (Crop)
+                    </Label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={imagePosition}
+                      onChange={(e) => setImagePosition(parseInt(e.target.value))}
+                      className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      Change
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setCoverImage("")}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -177,9 +277,7 @@ const Write = () => {
                   </div>
                   <div>
                     <p className="text-lg font-medium text-slate-700">Add a cover image</p>
-                    <p className="text-sm text-slate-500 mt-1">
-                      Recommended size: 1600 x 840
-                    </p>
+                    <p className="text-sm text-slate-500 mt-1">Recommended size: 1600 x 840</p>
                   </div>
                   <Button variant="outline" className="mt-2">
                     <Upload className="h-4 w-4 mr-2" />
@@ -199,27 +297,17 @@ const Write = () => {
                       reader.onload = (e) => {
                         setCoverImage(e.target?.result as string);
                         setIsUploading(false);
-                        showNotification("Cover image uploaded successfully!");
+                        toast.success("Cover image uploaded!");
                       };
                       reader.readAsDataURL(file);
                     }
                   }}
                 />
-                {isUploading && (
-                  <div className="absolute inset-0 bg-white bg-opacity-80 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-                      <p className="mt-3 text-sm text-slate-600">Uploading...</p>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
 
-          {/* Editor Section */}
           <div className="p-8 space-y-6">
-            {/* Title Input */}
             <div className="space-y-4">
               <Label htmlFor="title" className="text-sm font-medium text-muted-foreground">Post Title</Label>
               <Textarea
@@ -238,7 +326,6 @@ const Write = () => {
               <div className="h-px bg-border"></div>
             </div>
 
-            {/* Tags Section */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold text-slate-700 flex items-center">
                 <Tag className="w-4 h-4 mr-2" />
@@ -247,7 +334,7 @@ const Write = () => {
               <div className="flex gap-2">
                 <Input
                   id="tags"
-                  placeholder="Add tag and press Enter..."
+                  placeholder="Add tag (Press Enter)"
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -256,11 +343,9 @@ const Write = () => {
                       addTag();
                     }
                   }}
-                  className="flex-1"
+                  className="flex-1 h-10"
                 />
-                <Button onClick={addTag} variant="outline">
-                  Add
-                </Button>
+                <Button onClick={addTag} variant="outline" className="h-10">Add</Button>
               </div>
               {tags.length > 0 && (
                 <div className="flex gap-2 flex-wrap pt-2">
@@ -270,17 +355,13 @@ const Write = () => {
                       className="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1 text-sm"
                     >
                       {tag}
-                      <X
-                        className="h-3 w-3 ml-2 cursor-pointer"
-                        onClick={() => removeTag(tag)}
-                      />
+                      <X className="h-3 w-3 ml-2 cursor-pointer" onClick={() => removeTag(tag)} />
                     </Badge>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* Content Editor */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold text-slate-700">Content</Label>
               <Textarea
@@ -290,23 +371,17 @@ const Write = () => {
                 onChange={(e) => setContent(e.target.value)}
                 className="min-h-[500px] text-lg leading-relaxed resize-none border-slate-200 focus:border-blue-500 focus:ring-blue-500"
               />
-              
-              {/* Stats Bar */}
+
               <div className="flex items-center justify-between text-sm text-slate-500 pt-2">
                 <div className="flex items-center space-x-4">
                   <span>{wordCount} words</span>
                   <span>•</span>
                   <span>{readTime} min read</span>
                 </div>
-                <div className="text-xs text-slate-400">
-                  Auto-saved • Just now
-                </div>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Bottom Padding */}
         <div className="h-20"></div>
       </main>
     </div>

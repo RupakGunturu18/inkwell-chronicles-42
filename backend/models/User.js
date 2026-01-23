@@ -31,6 +31,15 @@ const userSchema = new mongoose.Schema({
     minlength: [6, 'Password must be at least 6 characters'],
     select: false // Don't return password by default in queries
   },
+  profileImage: {
+    type: String,
+    default: ''
+  },
+  bio: {
+    type: String,
+    default: '',
+    maxlength: [500, 'Bio must be at most 500 characters']
+  },
   resetPasswordToken: String,
   resetPasswordExpiry: Date,
   createdAt: {

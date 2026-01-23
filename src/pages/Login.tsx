@@ -27,7 +27,15 @@ const Login = () => {
       navigate("/");
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || "Login failed. Please try again.";
-      toast.error(errorMessage);
+
+      // Show specific message for non-existent accounts
+      if (errorMessage.includes("Account not found")) {
+        toast.error(errorMessage, {
+          autoClose: 5000,
+        });
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }

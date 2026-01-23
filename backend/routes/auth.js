@@ -7,7 +7,10 @@ const {
     resetPassword,
     checkUsername,
     searchUsers,
-    protect
+    protect,
+    getUserProfile,
+    updateProfile,
+    changePassword
 } = require('../controllers/authController');
 
 // Public routes
@@ -19,5 +22,8 @@ router.get('/check-username/:username', checkUsername);
 
 // Protected routes
 router.get('/search-users', protect, searchUsers);
+router.get('/profile', protect, getUserProfile);
+router.put('/profile', protect, updateProfile);
+router.put('/change-password', protect, changePassword);
 
 module.exports = router;

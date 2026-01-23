@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "react-toastify";
-import { Camera, Loader2, Check, X, Edit, Trash2, Eye, FileText, Settings, LayoutGrid, MoreHorizontal } from "lucide-react";
+import { Camera, Loader2, Check, X, Edit, Trash2, Eye, EyeOff, FileText, Settings, LayoutGrid, MoreHorizontal } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,6 +64,11 @@ const Profile = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Password visibility states
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
   useEffect(() => {
     // Moved fetch calls to separate tab-aware functions
@@ -165,6 +170,11 @@ const Profile = () => {
   };
 
   const handlePasswordChange = async () => {
+    if (passwordData.newPassword === passwordData.currentPassword) {
+      toast.info("Your new password cannot be the same as your current password");
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error("New passwords do not match");
       return;
@@ -316,15 +326,15 @@ const Profile = () => {
           }}>
             <div className="overflow-x-auto pb-4 -mx-4 px-4 md:overflow-visible md:pb-0 md:mx-0 md:px-0 scrollbar-hide">
               <TabsList className="flex w-max md:w-full max-w-2xl lg:max-w-2xl bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 mb-8 md:mb-12">
-                <TabsTrigger value="posts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
+                <TabsTrigger value="posts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
                   <LayoutGrid className="w-4 h-4 mr-2" />
                   My Posts ({myPosts.length})
                 </TabsTrigger>
-                <TabsTrigger value="drafts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
+                <TabsTrigger value="drafts" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
                   <FileText className="w-4 h-4 mr-2" />
                   Drafts ({myDrafts.length})
                 </TabsTrigger>
-                <TabsTrigger value="settings" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
+                <TabsTrigger value="settings" className="flex-1 whitespace-nowrap rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-accent data-[state=active]:text-white transition-all py-3 px-6 sm:px-10">
                   <Settings className="w-4 h-4 mr-2" />
                   Settings
                 </TabsTrigger>
@@ -458,38 +468,65 @@ const Profile = () => {
                   <CardContent className="p-8 space-y-6">
                     <div className="space-y-3">
                       <Label htmlFor="current-pass" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Current Password</Label>
-                      <Input
-                        id="current-pass"
-                        type="password"
-                        value={passwordData.currentPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                        className="h-14 rounded-xl border-slate-200 focus:ring-blue-500"
-                        placeholder="••••••••"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="current-pass"
+                          type={showCurrentPass ? "text" : "password"}
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                          className="h-14 rounded-xl border-slate-200 focus:ring-blue-500 pr-12"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCurrentPass(!showCurrentPass)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          {showCurrentPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-3">
                       <Label htmlFor="new-pass" className="text-sm font-bold text-slate-700 uppercase tracking-widest">New Password</Label>
-                      <Input
-                        id="new-pass"
-                        type="password"
-                        value={passwordData.newPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                        className="h-14 rounded-xl border-slate-200 focus:ring-blue-500"
-                        placeholder="••••••••"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="new-pass"
+                          type={showNewPass ? "text" : "password"}
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                          className="h-14 rounded-xl border-slate-200 focus:ring-blue-500 pr-12"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPass(!showNewPass)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          {showNewPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-3">
                       <Label htmlFor="confirm-pass" className="text-sm font-bold text-slate-700 uppercase tracking-widest">Confirm New Password</Label>
-                      <Input
-                        id="confirm-pass"
-                        type="password"
-                        value={passwordData.confirmPassword}
-                        onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                        className="h-14 rounded-xl border-slate-200 focus:ring-blue-500"
-                        placeholder="••••••••"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="confirm-pass"
+                          type={showConfirmPass ? "text" : "password"}
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                          className="h-14 rounded-xl border-slate-200 focus:ring-blue-500 pr-12"
+                          placeholder="••••••••"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPass(!showConfirmPass)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          {showConfirmPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
                     </div>
 
                     <Button

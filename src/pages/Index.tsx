@@ -180,8 +180,32 @@ const Index = () => {
           </div>
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-gray-900">
             Where ideas come to{" "}
-            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              life
+            <span className="relative inline-block group">
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                life
+              </span>
+              <svg
+                className="absolute -bottom-2 -left-3 w-[calc(100%+24px)] h-4 drop-shadow-[0_0_8px_rgba(147,51,234,0.3)]"
+                viewBox="0 0 120 20"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  <linearGradient id="hero-curve-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#2563eb" />
+                    <stop offset="50%" stopColor="#9333ea" />
+                    <stop offset="100%" stopColor="#db2777" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M5 15 Q 60 2 115 15"
+                  stroke="url(#hero-curve-gradient)"
+                  strokeWidth="6"
+                  fill="none"
+                  strokeLinecap="round"
+                  className="animate-[draw_1.5s_ease-out_forwards]"
+                  style={{ strokeDasharray: 120, strokeDashoffset: 120 }}
+                />
+              </svg>
             </span>
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
@@ -189,7 +213,7 @@ const Index = () => {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <button className="px-8 py-4 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30">
-              Start Reading
+              Templates
             </button>
             <button
               onClick={() => window.location.href = '/write'}
@@ -241,14 +265,13 @@ const Index = () => {
             Found {filteredPosts.length} {filteredPosts.length === 1 ? 'post' : 'posts'}
           </p>
         )}
-
         {/* My Posts Quick Access */}
         {user && myPosts.length > 0 && !searchQuery && (
-          <div className="mt-16 animate-fade-in">
+          <div className="mt-16 animate-fade-in text-left">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <div className="w-1 bg-blue-600 h-6 rounded-full"></div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">My Recent Posts</h2>
+                <h2 className="text-2xl font-black text-slate-900 tracking-tight text-left">My Recent Posts</h2>
               </div>
               <Link to="/profile" className="text-blue-600 font-bold hover:underline text-sm">View all my posts</Link>
             </div>
@@ -265,10 +288,10 @@ const Index = () => {
                       />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight">
+                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight text-left">
                         {post.title}
                       </h3>
-                      <p className="text-slate-400 text-[10px] mt-2 font-medium">
+                      <p className="text-slate-400 text-[10px] mt-2 font-medium text-left">
                         {formatDate(post.createdAt)}
                       </p>
                     </div>

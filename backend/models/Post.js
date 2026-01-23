@@ -58,6 +58,7 @@ const postSchema = new mongoose.Schema({
 
 // Added compound index for fast profile queries
 postSchema.index({ authorId: 1, status: 1 });
+postSchema.index({ status: 1 });
 postSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Post', postSchema);

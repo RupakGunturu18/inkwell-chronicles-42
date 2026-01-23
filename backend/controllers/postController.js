@@ -4,10 +4,10 @@ const Post = require('../models/Post');
 exports.getAllPosts = async (req, res) => {
   try {
     const posts = await Post.find({ status: 'published' })
-      .populate('authorId', 'name username profileImage')
-      .select('title author authorId createdAt tags coverImage coverImagePosition')
+      .populate('authorId', 'name profileImage') // Only name and image
+      .select('title authorId createdAt tags coverImage') // Strictly minimum fields
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(6)
       .lean();
     res.status(200).json(posts);
   } catch (error) {
@@ -21,7 +21,8 @@ exports.getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('authorId', 'name username profileImage bio')
-      .populate('comments.user', 'name username profileImage');
+      .populate('comments.user', 'name username profileImage')
+      .lean();
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
     res.status(200).json(post);

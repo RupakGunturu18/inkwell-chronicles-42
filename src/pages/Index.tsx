@@ -172,7 +172,7 @@ const Index = () => {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 pt-16 pb-12">
+      <section className="container mx-auto px-4 pt-24 md:pt-32 pb-12">
         <div className="text-center space-y-6 max-w-4xl mx-auto">
           <div className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-50 rounded-full text-blue-600 text-sm font-medium mb-4">
             <Sparkles className="w-4 h-4" />
@@ -334,10 +334,13 @@ const Index = () => {
               <div className="flex justify-center mt-12 mb-8">
                 <Link
                   to="/profile"
-                  className="px-8 py-3 md:px-10 md:py-4 bg-white text-gray-900 rounded-full font-bold text-sm md:text-base hover:bg-gray-50 transition-all border-2 border-slate-100 hover:border-blue-600/20 hover:shadow-xl shadow-sm flex items-center gap-2 group"
+                  className="px-8 py-3 md:px-10 md:py-4 bg-white text-gray-900 rounded-full font-bold text-sm md:text-base transition-all border-2 border-slate-100 hover:border-transparent hover:shadow-xl shadow-sm flex items-center gap-2 group relative overflow-hidden"
                 >
-                  View all posts
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <span className="relative z-10 group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:via-purple-600 group-hover:to-pink-600 group-hover:bg-clip-text group-hover:text-transparent transition-all">
+                    View all posts
+                  </span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform group-hover:text-pink-600 relative z-10" />
+                  <div className="absolute inset-0 border-2 border-transparent group-hover:border-pink-600/20 rounded-full transition-all"></div>
                 </Link>
               </div>
             )}

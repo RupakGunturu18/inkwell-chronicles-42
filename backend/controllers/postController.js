@@ -6,7 +6,7 @@ exports.getAllPosts = async (req, res) => {
     const posts = await Post.find({ status: 'published' })
       .populate('authorId', 'name profileImage') // Only name and image
       .select('title authorId createdAt tags coverImage') // Strictly minimum fields
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1 }) // Newest blogs first
       .limit(6)
       .lean();
     res.status(200).json(posts);

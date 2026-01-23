@@ -185,8 +185,8 @@ const Index = () => {
                 life
               </span>
               <svg
-                className="absolute -bottom-2 -left-3 w-[calc(100%+24px)] h-4 drop-shadow-[0_0_8px_rgba(147,51,234,0.3)]"
-                viewBox="0 0 120 20"
+                className="absolute -bottom-4 -left-3 w-[calc(100%+24px)] h-8 drop-shadow-[0_0_8px_rgba(147,51,234,0.3)]"
+                viewBox="0 0 120 40"
                 preserveAspectRatio="none"
               >
                 <defs>
@@ -197,13 +197,13 @@ const Index = () => {
                   </linearGradient>
                 </defs>
                 <path
-                  d="M5 15 Q 60 2 115 15"
+                  d="M5 25 C 20 35, 45 15, 60 25 S 100 15, 115 25"
                   stroke="url(#hero-curve-gradient)"
                   strokeWidth="6"
                   fill="none"
                   strokeLinecap="round"
                   className="animate-[draw_1.5s_ease-out_forwards]"
-                  style={{ strokeDasharray: 120, strokeDashoffset: 120 }}
+                  style={{ strokeDasharray: 200, strokeDashoffset: 200 }}
                 />
               </svg>
             </span>

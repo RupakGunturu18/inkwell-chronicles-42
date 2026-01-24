@@ -64,10 +64,14 @@ mongoose.connect(process.env.MONGO_URI, {
 const postRoutes = require('./routes/posts');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
+const templateRoutes = require('./routes/template.routes');
+const folderRoutes = require('./routes/folder.routes');
 
 app.use('/api/posts', postRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/folders', folderRoutes);
 
 // Socket.IO
 const activeUsers = new Map(); // userId -> socketId

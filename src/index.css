@@ -161,6 +161,93 @@ All colors MUST be HSL.
     }
   }
 
+  /* Tiptap Editor Styles */
+  .ProseMirror {
+    outline: none;
+  }
+
+  .ProseMirror p {
+    margin: 0.75em 0;
+  }
+
+  .ProseMirror h1 {
+    font-size: 2em;
+    font-weight: bold;
+    margin: 0.67em 0;
+  }
+
+  .ProseMirror h2 {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 0.75em 0;
+  }
+
+  .ProseMirror h3 {
+    font-size: 1.17em;
+    font-weight: bold;
+    margin: 0.83em 0;
+  }
+
+  .ProseMirror ul,
+  .ProseMirror ol {
+    padding-left: 1.5em;
+    margin: 0.75em 0;
+  }
+
+  .ProseMirror ul {
+    list-style-type: disc;
+  }
+
+  .ProseMirror ol {
+    list-style-type: decimal;
+  }
+
+  .ProseMirror li {
+    margin: 0.25em 0;
+  }
+
+  .ProseMirror table {
+    border-collapse: collapse;
+    margin: 1em 0;
+    overflow: hidden;
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .ProseMirror table td,
+  .ProseMirror table th {
+    border: 2px solid #e2e8f0;
+    box-sizing: border-box;
+    min-width: 1em;
+    padding: 0.5em;
+    position: relative;
+    vertical-align: top;
+  }
+
+  .ProseMirror table th {
+    background-color: #f1f5f9;
+    font-weight: bold;
+    text-align: left;
+  }
+
+  .ProseMirror img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5em;
+  }
+
+  .ProseMirror a {
+    color: #3b82f6;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .ProseMirror mark {
+    background-color: #fef08a;
+    border-radius: 0.25em;
+    padding: 0.125em 0;
+  }
+
   @keyframes draw {
     to {
       stroke-dashoffset: 0;

@@ -38,9 +38,27 @@ app.use((req, res, next) => {
 });
 
 // MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
+mongoose.set('bufferCommands', false);
+
+mongoose.connection.on('error', err => {
+  console.log('MongoDB connection error:', err);
+  if (err.name === 'MongooseServerSelectionError') {
+    console.error('\n[CRITICAL] Could not connect to MongoDB Atlas.');
+    console.error('This is likely an IP Whitelist issue. Please ensure your current IP is added to your Atlas cluster settings.');
+    console.error('Visit: https://www.mongodb.com/docs/atlas/security-whitelist/\n');
+  }
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB successfully connected');
+});
+
+mongoose.connect(process.env.MONGO_URI, {
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+})
+  .catch(err => {
+    // Initial connection error is handled by the 'error' listener as well
+  });
 
 // Routes
 const postRoutes = require('./routes/posts');

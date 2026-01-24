@@ -17,16 +17,31 @@ import { Badge } from "@/components/ui/badge";
 export const Navbar = () => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      const currentScrollY = window.scrollY;
+
+      // Handle floating pill design (scrolled state)
+      setIsScrolled(currentScrollY > 20);
+
+      // Handle visibility (hide on scroll down, show on scroll up)
+      if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        setIsVisible(false); // Scrolling down and past threshold
+      } else {
+        setIsVisible(true); // Scrolling up or at the top
+      }
+
+      setLastScrollY(currentScrollY);
     };
-    window.addEventListener("scroll", handleScroll);
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [lastScrollY]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme") as "light" | "dark" | null;
@@ -50,13 +65,13 @@ export const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] flex justify-center pt-1 md:pt-2 ${isScrolled ? "pointer-events-none" : "bg-white/0 border-transparent shadow-none"
-        }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out flex justify-center pt-1 md:pt-2 ${!isVisible ? "-translate-y-full opacity-0" : "translate-y-0 opacity-100"
+        } ${isScrolled ? "pointer-events-none" : "bg-white/0 border-transparent shadow-none"}`}
     >
       <div
         className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] flex items-center justify-between px-6 pointer-events-auto ${isScrolled
-            ? "w-[95%] md:w-[75%] max-w-5xl h-14 bg-white/90 backdrop-blur-xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200/50"
-            : "w-full h-16 bg-white/80 backdrop-blur-lg border-b border-slate-100"
+          ? "w-[95%] md:w-[75%] max-w-5xl h-14 bg-white/90 backdrop-blur-xl rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-200/50"
+          : "w-full h-16 bg-white/80 backdrop-blur-lg border-b border-slate-100"
           }`}
       >
         <Link to="/" className="flex items-center space-x-2 group ml-4 md:ml-6">

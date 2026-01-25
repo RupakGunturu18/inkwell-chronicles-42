@@ -1,73 +1,78 @@
-# Welcome to your Lovable project
+A web-based platform designed to create, organize, and securely manage blog pages using customizable templates and role-based folder access. The system allows users to store blogs in public and private sections, ensuring both flexibility in content design and security in data access.
 
-## Project info
+🚀 Project Overview
 
-**URL**: https://lovable.dev/projects/e3d54ae1-8f8e-4792-85ab-bd6ce479a2f4
+This project provides a structured way to manage blog content where:
 
-## How can I edit this code?
+Users can create blog pages using pre-designed templates
 
-There are several ways of editing your application.
+Blogs are organized into Public and Private folders
 
-**Use Lovable**
+Public blogs are visible to everyone
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/e3d54ae1-8f8e-4792-85ab-bd6ce479a2f4) and start prompting.
+Private blogs are protected and accessible only to authorized users
 
-Changes made via Lovable will be committed automatically to this repo.
+Templates ensure consistent and professional layouts across all blog pages
 
-**Use your preferred IDE**
+It works similar to a content management system (CMS) but focuses on simplicity, customization, and security.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+📁 Folder-Based Security Model
+🔓 Public Folder
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Stores blogs meant for open viewing
 
-Follow these steps:
+No authentication required
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Ideal for published articles, tutorials, and announcements
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+🔒 Private Folder
 
-# Step 3: Install the necessary dependencies.
-npm i
+Stores draft or confidential blogs
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+Requires authentication/authorization
 
-**Edit a file directly in GitHub**
+Prevents unauthorized access and data leakage
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+🎨 Template System
 
-**Use GitHub Codespaces**
+The platform includes multiple blog templates such as:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Minimal layout for technical articles
 
-## What technologies are used for this project?
+Image-focused template for storytelling
 
-This project is built with:
+Magazine-style layout for featured posts
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Each template provides:
 
-## How can I deploy this project?
+Responsive design
 
-Simply open [Lovable](https://lovable.dev/projects/e3d54ae1-8f8e-4792-85ab-bd6ce479a2f4) and click on Share -> Publish.
+Clean typography
 
-## Can I connect a custom domain to my Lovable project?
+Reusable structure
 
-Yes, you can!
+Users can select a template while creating a blog page.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+🔐 Security Features
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Folder-based access control (Public vs Private)
+
+User authentication for private content
+
+Protected routes/APIs
+
+Optional role-based permissions (Admin, Author, Viewer)
+
+⚙️ Key Features
+
+📄 Create blogs using prebuilt templates
+
+🗂 Organize content into public/private folders
+
+🔒 Secure private content
+
+🧩 Easy template switching
+
+📱 Responsive design
+
+🚀 Fast and lightweight

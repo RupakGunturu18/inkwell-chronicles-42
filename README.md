@@ -75,4 +75,5 @@ Optional role-based permissions (Admin, Author, Viewer)
 
 📱 Responsive design
 
-🚀 Fast and lightweight
+🚀 Fast and lightweight.
+

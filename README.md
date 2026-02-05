@@ -63,7 +63,7 @@ Protected routes/APIs
 
 Optional role-based permissions (Admin, Author, Viewer)
 
-⚙️ Key Features
+⚙️ Key Features :
 
 📄 Create blogs using prebuilt templates
 

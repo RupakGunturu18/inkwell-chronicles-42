@@ -15,6 +15,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     login: (emailOrUsername: string, password: string) => Promise<void>;
+    loginWithGoogle: (idToken: string) => Promise<void>;
     signup: (name: string, username: string, email: string, password: string) => Promise<void>;
     logout: () => void;
     loading: boolean;
@@ -67,6 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         socketService.connect(data.token);
     };
 
+    const loginWithGoogle = async (idToken: string) => {
+        const data = await authService.googleLogin(idToken);
+        setUser(data.user);
+        socketService.connect(data.token);
+    };
+
     const logout = () => {
         authService.logout();
         setUser(null);
@@ -83,6 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: !!user,
         login,
+        loginWithGoogle,
         signup,
         logout,
         loading,

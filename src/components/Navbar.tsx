@@ -63,9 +63,11 @@ export const Navbar = () => {
           }`}
       >
         <Link to="/" className="flex items-center space-x-2 group ml-4 md:ml-6">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 group-hover:bg-blue-700 transition-colors flex items-center justify-center text-white font-bold text-sm">
-            B
-          </div>
+          <img
+            src="/blog.avif"
+            alt="BlogHub logo"
+            className="h-9 w-9 rounded-lg object-contain transition-transform group-hover:scale-105"
+          />
           <span className="text-xl font-semibold tracking-tight text-slate-900 group-hover:text-blue-700 transition-colors">
             BlogHub
           </span>
@@ -168,15 +170,8 @@ export const Navbar = () => {
 
                     <DropdownMenuItem
                       onClick={() => navigate("/profile")}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors group data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900"
+                      className="flex items-center gap-3 px-3 py-2.0 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors group data-[highlighted]:bg-slate-100 data-[highlighted]:text-slate-900"
                     >
-                      <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center text-slate-600 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                        <LayoutGrid className="h-4 w-4" />
-                      </div>
-                      <div className="flex flex-col leading-tight">
-                        <span className="font-medium text-slate-900">Dashboard</span>
-                        <span className="text-[11px] text-slate-500">Your activity</span>
-                      </div>
                     </DropdownMenuItem>
 
                     <div className="h-px bg-slate-100 my-1 mx-2" />

@@ -2,6 +2,9 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const sendEmail = require('../services/emailService');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // Generate JWT token
 const generateToken = (userId) => {
@@ -97,6 +100,82 @@ exports.login = async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: 'Server error during login' });
+    }
+};
+
+// @desc    Login or signup with Google
+// @route   POST /api/auth/google
+// @access  Public
+exports.googleLogin = async (req, res) => {
+    try {
+        const { idToken } = req.body;
+
+        if (!idToken) {
+            return res.status(400).json({ message: 'Google token is required' });
+        }
+
+        const ticket = await googleClient.verifyIdToken({
+            idToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const googleId = payload?.sub;
+        const email = payload?.email?.toLowerCase();
+        const name = payload?.name || 'Google User';
+        const profileImage = payload?.picture || '';
+
+        if (!googleId || !email) {
+            return res.status(400).json({ message: 'Invalid Google token payload' });
+        }
+
+        let user = await User.findOne({ $or: [{ googleId }, { email }] });
+
+        if (!user) {
+            const baseUsername = (email.split('@')[0] || 'user')
+                .toLowerCase()
+                .replace(/[^a-z0-9_]/g, '_')
+                .slice(0, 16) || 'user';
+
+            let username = baseUsername;
+            let suffix = 1;
+            while (await User.findOne({ username })) {
+                username = `${baseUsername}${suffix}`.slice(0, 20);
+                suffix += 1;
+            }
+
+            user = await User.create({
+                name,
+                username,
+                email,
+                googleId,
+                profileImage,
+                password: undefined,
+            });
+        } else {
+            if (!user.googleId) user.googleId = googleId;
+            if (!user.profileImage && profileImage) user.profileImage = profileImage;
+            if (!user.name && name) user.name = name;
+            await user.save();
+        }
+
+        const token = generateToken(user._id);
+
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                profileImage: user.profileImage,
+                bio: user.bio,
+            },
+        });
+    } catch (error) {
+        console.error('Google login error:', error);
+        res.status(401).json({ message: 'Google login failed' });
     }
 };
 

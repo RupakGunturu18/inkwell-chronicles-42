@@ -25,9 +25,17 @@ const userSchema = new mongoose.Schema({
     trim: true,
     match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
   },
+  googleId: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+  },
   password: {
     type: String,
-    required: [true, 'Password is required'],
+    required: function () {
+      return !this.googleId;
+    },
     minlength: [6, 'Password must be at least 6 characters'],
     select: false // Don't return password by default in queries
   },
@@ -52,6 +60,9 @@ const userSchema = new mongoose.Schema({
 userSchema.pre('save', async function (next) {
   // Only hash if password is modified
   if (!this.isModified('password')) return next();
+
+  // Google-auth users may not have a local password
+  if (!this.password) return next();
 
   try {
     const salt = await bcrypt.genSalt(10);

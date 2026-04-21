@@ -212,12 +212,17 @@ const Index = () => {
             Discover stories, thinking, and expertise from writers on any topic that matters to you.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-            <button className="px-8 py-4 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30">
+            {/* Next sprint: enable templates CTA again.
+            <Link
+              to="/templates"
+              className="px-8 py-4 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
+            >
               Templates
-            </button>
+            </Link>
+            */}
             <button
               onClick={() => window.location.href = '/write'}
-              className="px-8 py-4 bg-white text-gray-900 rounded-full font-medium hover:bg-gray-100 transition-colors border border-gray-200"
+              className="px-8 py-4 bg-blue-600 text-white rounded-full font-medium hover:bg-blue-700 transition-colors shadow-lg shadow-blue-600/30"
             >
               Start Writing
             </button>

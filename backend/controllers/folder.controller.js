@@ -1,5 +1,7 @@
 const Folder = require('../models/folder.model');
 const Template = require('../models/template.model');
+const bcrypt = require('bcryptjs');
+const { grantFolderAccess, hasFolderAccess, revokeFolderAccess } = require('../services/folderAccessService');
 
 // Get all folders for a user (with hierarchy)
 exports.getAllFolders = async (req, res) => {
@@ -42,9 +44,13 @@ exports.getFolder = async (req, res) => {
             return res.status(404).json({ message: 'Folder not found' });
         }
 
-        // Check ownership for private folders
-        if (!folder.isPublic && folder.author.toString() !== req.user.id) {
+        // Folder routes are private to the owner.
+        if (folder.author.toString() !== req.user.id) {
             return res.status(403).json({ message: 'Access denied' });
+        }
+
+        if (!folder.isPublic && !hasFolderAccess(req.user.id, folder._id)) {
+            return res.status(403).json({ message: 'Folder is locked. Verify PIN to continue.' });
         }
 
         // Get templates in this folder
@@ -70,10 +76,11 @@ exports.getFolder = async (req, res) => {
 exports.createFolder = async (req, res) => {
     try {
         const { name, description, parentFolder, isPublic, pin } = req.body;
+        const normalizedPin = typeof pin === 'string' ? pin.trim() : '';
 
-        // Validate PIN if folder is private
-        if (!isPublic && pin) {
-            if (!/^\d{4}$/.test(pin)) {
+        // Private folders must always have a valid PIN.
+        if (!isPublic) {
+            if (!/^\d{4}$/.test(normalizedPin)) {
                 return res.status(400).json({ message: 'PIN must be exactly 4 digits' });
             }
         }
@@ -91,7 +98,8 @@ exports.createFolder = async (req, res) => {
             description,
             parentFolder: parentFolder === 'root' ? null : parentFolder,
             isPublic,
-            pin: !isPublic && pin ? pin : null,
+            pin: null,
+            pinHash: !isPublic ? await bcrypt.hash(normalizedPin, 10) : null,
             author: req.user.id
         });
 
@@ -120,12 +128,15 @@ exports.updateFolder = async (req, res) => {
         }
 
         const { name, description, parentFolder, isPublic, pin } = req.body;
+        const nextIsPublic = isPublic !== undefined ? isPublic : folder.isPublic;
+        const normalizedPin = typeof pin === 'string' ? pin.trim() : '';
 
-        // Validate PIN if folder is private
-        if (!isPublic && pin) {
-            if (!/^\d{4}$/.test(pin)) {
+        if (!nextIsPublic && normalizedPin && !/^\d{4}$/.test(normalizedPin)) {
                 return res.status(400).json({ message: 'PIN must be exactly 4 digits' });
-            }
+        }
+
+        if (!nextIsPublic && !normalizedPin && !folder.pinHash && !folder.pin) {
+            return res.status(400).json({ message: 'PIN is required for private folders' });
         }
 
         // Prevent circular references (folder can't be its own parent)
@@ -144,8 +155,15 @@ exports.updateFolder = async (req, res) => {
         folder.name = name || folder.name;
         folder.description = description !== undefined ? description : folder.description;
         folder.parentFolder = parentFolder === 'root' ? null : (parentFolder || folder.parentFolder);
-        folder.isPublic = isPublic !== undefined ? isPublic : folder.isPublic;
-        folder.pin = !isPublic && pin ? pin : null;
+        folder.isPublic = nextIsPublic;
+
+        if (nextIsPublic) {
+            folder.pin = null;
+            folder.pinHash = null;
+        } else if (normalizedPin) {
+            folder.pin = null;
+            folder.pinHash = await bcrypt.hash(normalizedPin, 10);
+        }
 
         await folder.save();
         await folder.populate('parentFolder', 'name');
@@ -217,25 +235,46 @@ exports.deleteFolder = async (req, res) => {
 exports.verifyPin = async (req, res) => {
     try {
         const { pin } = req.body;
-        const folder = await Folder.findById(req.params.id);
+        const normalizedPin = typeof pin === 'string' ? pin.trim() : '';
+        const folder = await Folder.findById(req.params.id).select('+pin +pinHash');
 
         if (!folder) {
             return res.status(404).json({ message: 'Folder not found' });
         }
 
+        if (folder.author.toString() !== req.user.id) {
+            return res.status(403).json({ message: 'Access denied' });
+        }
+
         if (folder.isPublic) {
+            grantFolderAccess(req.user.id, folder._id);
             return res.json({ valid: true });
         }
 
-        // Owner always has access
-        if (folder.author.toString() === req.user.id) {
+        if (!/^\d{4}$/.test(normalizedPin)) {
+            revokeFolderAccess(req.user.id, folder._id);
+            return res.json({ valid: false });
+        }
+
+        let isValid = false;
+        if (folder.pinHash) {
+            isValid = await bcrypt.compare(normalizedPin, folder.pinHash);
+        } else if (folder.pin) {
+            // Migrate legacy plain-text PIN to hash after first successful verification.
+            isValid = folder.pin === normalizedPin;
+            if (isValid) {
+                folder.pinHash = await bcrypt.hash(normalizedPin, 10);
+                folder.pin = null;
+                await folder.save();
+            }
+        }
+
+        if (isValid) {
+            grantFolderAccess(req.user.id, folder._id);
             return res.json({ valid: true });
         }
 
-        // Check PIN
-        if (folder.pin === pin) {
-            return res.json({ valid: true });
-        }
+        revokeFolderAccess(req.user.id, folder._id);
 
         res.json({ valid: false });
     } catch (error) {

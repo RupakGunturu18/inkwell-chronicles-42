@@ -18,7 +18,7 @@ export const Breadcrumbs = ({ path, onNavigate }: BreadcrumbsProps) => {
                 className="flex items-center gap-1 text-slate-600 hover:text-blue-600 transition-colors"
             >
                 <Home className="h-4 w-4" />
-                <span className="font-medium">Templates</span>
+                <span className="font-medium">Folders</span>
             </button>
 
             {path.map((item, index) => (

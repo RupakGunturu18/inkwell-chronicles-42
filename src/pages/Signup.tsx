@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { authService } from "@/services/authService";
 
 const Signup = () => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -50,6 +51,11 @@ const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!name.trim()) {
+      toast.error("Please enter your name");
+      return;
+    }
+
     if (password !== confirmPassword) {
       toast.error("Passwords do not match");
       return;
@@ -68,7 +74,7 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      await signup("User", username, email, password);
+      await signup(name.trim(), username, email, password);
       toast.success("Account created successfully! 🎉");
       navigate("/");
     } catch (error: any) {
@@ -128,6 +134,21 @@ const Signup = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name */}
+            <div className="space-y-2">
+              <Label htmlFor="name" className="text-gray-900 font-medium">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-11 border-gray-300"
+                required
+                disabled={loading}
+              />
+            </div>
+
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-900 font-medium">Email</Label>

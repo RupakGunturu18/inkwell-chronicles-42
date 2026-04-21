@@ -21,7 +21,13 @@ const folderSchema = new mongoose.Schema({
     },
     pin: {
         type: String,
+        select: false,
         default: null // 4-digit PIN for private folders
+    },
+    pinHash: {
+        type: String,
+        select: false,
+        default: null
     },
     author: {
         type: mongoose.Schema.Types.ObjectId,

@@ -19,7 +19,6 @@ interface FolderData {
     name: string;
     description: string;
     isPublic: boolean;
-    pin?: string;
     parentFolder: string | null;
     coverImage?: string;
 }
@@ -46,6 +45,17 @@ export const FolderDialog = ({ open, onClose, onSuccess, folder, parentFolderId 
             toast({
                 title: 'Error',
                 description: 'Please enter a folder name',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        const isCreateMode = !folder?._id;
+
+        if (!isPublic && !pin && isCreateMode) {
+            toast({
+                title: 'Error',
+                description: 'PIN is required for private folders',
                 variant: 'destructive',
             });
             return;
@@ -120,7 +130,7 @@ export const FolderDialog = ({ open, onClose, onSuccess, folder, parentFolderId 
                         {folder ? 'Edit Folder' : 'Create New Folder'}
                     </DialogTitle>
                     <DialogDescription>
-                        Organize your templates with folders
+                        Organize your content with folders
                     </DialogDescription>
                 </DialogHeader>
 
@@ -131,7 +141,7 @@ export const FolderDialog = ({ open, onClose, onSuccess, folder, parentFolderId 
                             id="folder-name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="e.g., My Blog Templates"
+                            placeholder="e.g., My Blog Content"
                             required
                         />
                     </div>
@@ -181,7 +191,9 @@ export const FolderDialog = ({ open, onClose, onSuccess, folder, parentFolderId 
 
                     {!isPublic && (
                         <div className="space-y-2 animate-fade-in">
-                            <Label htmlFor="folder-pin">4-Digit PIN (Optional)</Label>
+                                <Label htmlFor="folder-pin">
+                                    {folder ? '4-Digit PIN (Leave empty to keep current)' : '4-Digit PIN *'}
+                                </Label>
                             <Input
                                 id="folder-pin"
                                 type="text"
@@ -195,7 +207,7 @@ export const FolderDialog = ({ open, onClose, onSuccess, folder, parentFolderId 
                                 className="text-center text-lg tracking-widest"
                             />
                             <p className="text-xs text-slate-500">
-                                Set a PIN to protect this folder. Leave empty for no PIN.
+                                Set a PIN to protect this folder.
                             </p>
                         </div>
                     )}

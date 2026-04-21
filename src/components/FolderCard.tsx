@@ -1,17 +1,23 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
-    Folder as FolderIcon,
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
     Lock,
     Globe,
     Edit,
     Trash2,
     ChevronRight,
-    Image as ImageIcon,
     FolderOpen
 } from 'lucide-react';
-import axios from 'axios';
-import { useToast } from '@/hooks/use-toast';
 
 interface Folder {
     _id: string;
@@ -19,7 +25,7 @@ interface Folder {
     description: string;
     isPublic: boolean;
     coverImage?: string;
-    parentFolder?: string | null;
+    parentFolder: string | null;
     createdAt: string;
 }
 
@@ -28,7 +34,8 @@ interface FolderCardProps {
     onEdit: (folder: Folder) => void;
     onDelete: (folderId: string) => void;
     onClick: (folder: Folder) => void;
-    templateCount?: number;
+    // Next sprint: re-enable template count in folder card.
+    // templateCount?: number;
     subfolderCount?: number;
 }
 
@@ -37,20 +44,15 @@ export const FolderCard = ({
     onEdit,
     onDelete,
     onClick,
-    templateCount = 0,
+    // templateCount = 0,
     subfolderCount = 0
 }: FolderCardProps) => {
     const [showActions, setShowActions] = useState(false);
-    const { toast } = useToast();
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation();
-
-        if (!confirm(`Are you sure you want to delete "${folder.name}"? This will also delete all templates and subfolders inside it.`)) {
-            return;
-        }
-
-        onDelete(folder._id);
+        setShowDeleteDialog(true);
     };
 
     const handleEdit = (e: React.MouseEvent) => {
@@ -110,10 +112,14 @@ export const FolderCard = ({
                                         Private
                                     </span>
                                 )}
-                                <span className="text-xs text-slate-400">•</span>
-                                <span className="text-xs text-slate-500">
-                                    {templateCount} template{templateCount !== 1 ? 's' : ''}
-                                </span>
+                                {/* Next sprint: re-enable template counter in card metadata.
+                                <>
+                                    <span className="text-xs text-slate-400">•</span>
+                                    <span className="text-xs text-slate-500">
+                                        {templateCount} template{templateCount !== 1 ? 's' : ''}
+                                    </span>
+                                </>
+                                */}
                                 {subfolderCount > 0 && (
                                     <>
                                         <span className="text-xs text-slate-400">•</span>
@@ -165,6 +171,29 @@ export const FolderCard = ({
 
             {/* Hover overlay */}
             <div className="absolute inset-0 border-2 border-transparent group-hover:border-blue-600 rounded-2xl transition-all pointer-events-none" />
+
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Delete folder?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This will permanently delete "{folder.name}" and all content inside it.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            className="bg-red-600 hover:bg-red-700"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(folder._id);
+                            }}
+                        >
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

@@ -1,4 +1,5 @@
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, useEditorState, ReactNodeViewRenderer, NodeViewProps, NodeViewWrapper } from '@tiptap/react';
+import { Extension } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import TextAlign from '@tiptap/extension-text-align';
@@ -12,7 +13,7 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -32,7 +33,6 @@ import {
     AlignJustify,
     List,
     ListOrdered,
-    Image as ImageIcon,
     Link as LinkIcon,
     Table as TableIcon,
     Palette,
@@ -44,6 +44,162 @@ interface TemplateEditorProps {
     content: string;
     onChange: (content: string) => void;
 }
+
+const MIN_IMAGE_WIDTH = 180;
+const DEFAULT_IMAGE_WIDTH = 420;
+
+const normalizeImageWidth = (width: string | undefined | null) => {
+    if (!width) {
+        return `${DEFAULT_IMAGE_WIDTH}px`;
+    }
+
+    return width;
+};
+
+const FontSize = Extension.create({
+    name: 'fontSize',
+
+    addGlobalAttributes() {
+        return [
+            {
+                types: ['textStyle'],
+                attributes: {
+                    fontSize: {
+                        default: null,
+                        parseHTML: (element) => element.style.fontSize || null,
+                        renderHTML: (attributes) => {
+                            if (!attributes.fontSize) {
+                                return {};
+                            }
+
+                            return {
+                                style: `font-size: ${attributes.fontSize}`,
+                            };
+                        },
+                    },
+                },
+            },
+        ];
+    },
+});
+
+function ResizableImageNodeView({ node, selected, updateAttributes }: NodeViewProps) {
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const resizeStateRef = useRef({
+        startX: 0,
+        startWidth: DEFAULT_IMAGE_WIDTH,
+        maxWidth: DEFAULT_IMAGE_WIDTH,
+    });
+    const [isResizing, setIsResizing] = useState(false);
+
+    const stopResize = useCallback(() => {
+        setIsResizing(false);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            stopResize();
+        };
+    }, [stopResize]);
+
+    const handleResizeStart = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const wrapper = wrapperRef.current;
+        const imageElement = wrapper?.querySelector('img');
+        const editorElement = wrapper?.closest('.ProseMirror') as HTMLElement | null;
+
+        if (!wrapper) {
+            return;
+        }
+
+        const renderedWidth = imageElement?.getBoundingClientRect().width || wrapper.getBoundingClientRect().width || DEFAULT_IMAGE_WIDTH;
+        const maxWidth = Math.max(MIN_IMAGE_WIDTH, (editorElement?.clientWidth || DEFAULT_IMAGE_WIDTH) - 48);
+
+        resizeStateRef.current = {
+            startX: event.clientX,
+            startWidth: renderedWidth,
+            maxWidth,
+        };
+
+        setIsResizing(true);
+
+        const handleMouseMove = (moveEvent: MouseEvent) => {
+            const deltaX = moveEvent.clientX - resizeStateRef.current.startX;
+            const nextWidth = Math.min(
+                resizeStateRef.current.maxWidth,
+                Math.max(MIN_IMAGE_WIDTH, Math.round(resizeStateRef.current.startWidth + deltaX))
+            );
+
+            updateAttributes({ width: `${nextWidth}px` });
+        };
+
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            stopResize();
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }, [stopResize, updateAttributes]);
+
+    const widthStyle = normalizeImageWidth(typeof node.attrs.width === 'string' ? node.attrs.width : null);
+
+    return (
+        <NodeViewWrapper className="my-4">
+            <div
+                ref={wrapperRef}
+                className={`relative inline-block max-w-full rounded-lg ${selected || isResizing ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+            >
+                <img
+                    src={node.attrs.src}
+                    alt={node.attrs.alt || ''}
+                    title={node.attrs.title || ''}
+                    className="block max-w-full h-auto select-none rounded-lg"
+                    style={{ width: widthStyle }}
+                    draggable={false}
+                />
+
+                {(selected || isResizing) && (
+                    <button
+                        type="button"
+                        aria-label="Resize image"
+                        onMouseDown={handleResizeStart}
+                        className="absolute -right-2 -bottom-2 h-4 w-4 rounded-full bg-blue-600 border-2 border-white shadow-md cursor-nwse-resize"
+                    />
+                )}
+            </div>
+        </NodeViewWrapper>
+    );
+}
+
+const AdjustableImage = Image.extend({
+    addAttributes() {
+        return {
+            ...this.parent?.(),
+            width: {
+                default: '100%',
+                parseHTML: (element) => element.getAttribute('data-width') || element.style.width || '100%',
+                renderHTML: (attributes) => {
+                    if (!attributes.width) {
+                        return {};
+                    }
+
+                    return {
+                        'data-width': attributes.width,
+                        style: `width: ${attributes.width}; height: auto;`,
+                    };
+                },
+            },
+        };
+    },
+
+    addNodeView() {
+        return ReactNodeViewRenderer(ResizableImageNodeView);
+    },
+});
 
 export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
     const [showColorPicker, setShowColorPicker] = useState(false);
@@ -62,6 +218,7 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
                 types: ['heading', 'paragraph'],
             }),
             TextStyle,
+            FontSize,
             Color,
             FontFamily.configure({
                 types: ['textStyle'],
@@ -75,8 +232,8 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
             TableRow,
             TableHeader,
             TableCell,
-            Image.configure({
-                inline: true,
+            AdjustableImage.configure({
+                inline: false,
                 allowBase64: true,
             }),
             Link.configure({
@@ -92,7 +249,7 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
         },
         editorProps: {
             attributes: {
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-[500px] max-w-none p-8 bg-white',
+                class: 'prose sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-[500px] max-w-none p-8 bg-white',
             },
             handleDrop: (view, event, slice, moved) => {
                 if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
@@ -105,7 +262,7 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
                             const { schema } = view.state;
                             const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
                             if (coordinates) {
-                                const node = schema.nodes.image.create({ src: base64 });
+                                const node = schema.nodes.image.create({ src: base64, width: `${DEFAULT_IMAGE_WIDTH}px` });
                                 const transaction = view.state.tr.insert(coordinates.pos, node);
                                 view.dispatch(transaction);
                             }
@@ -127,7 +284,7 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
                                 const reader = new FileReader();
                                 reader.onload = (e) => {
                                     const base64 = e.target?.result as string;
-                                    editor?.chain().focus().setImage({ src: base64 }).run();
+                                    editor?.chain().focus().setImage({ src: base64, width: `${DEFAULT_IMAGE_WIDTH}px` }).run();
                                 };
                                 reader.readAsDataURL(file);
                             }
@@ -139,6 +296,17 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
             },
         },
     });
+
+    useEffect(() => {
+        if (!editor) {
+            return;
+        }
+
+        const currentContent = editor.getHTML();
+        if (content !== currentContent) {
+            editor.commands.setContent(content, false);
+        }
+    }, [content, editor]);
 
     const setFontFamily = useCallback((font: string) => {
         editor?.chain().focus().setFontFamily(font).run();
@@ -164,7 +332,7 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
             const reader = new FileReader();
             reader.onload = (event) => {
                 const base64 = event.target?.result as string;
-                editor?.chain().focus().setImage({ src: base64 }).run();
+                editor?.chain().focus().setImage({ src: base64, width: `${DEFAULT_IMAGE_WIDTH}px` }).run();
             };
             reader.readAsDataURL(file);
         }
@@ -191,8 +359,35 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
     }, [editor]);
 
     const addTable = useCallback(() => {
-        editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+        if (!editor?.can().chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()) {
+            return;
+        }
+
+        editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
     }, [editor]);
+
+    const editorUiState = useEditorState({
+        editor,
+        selector: ({ editor: activeEditor }) => {
+            if (!activeEditor) {
+                return {
+                    headingValue: 'paragraph',
+                };
+            }
+
+            const headingValue = activeEditor.isActive('heading', { level: 1 })
+                ? 'heading1'
+                : activeEditor.isActive('heading', { level: 2 })
+                    ? 'heading2'
+                    : activeEditor.isActive('heading', { level: 3 })
+                        ? 'heading3'
+                        : 'paragraph';
+
+            return {
+                headingValue,
+            };
+        },
+    });
 
     if (!editor) {
         return null;
@@ -331,11 +526,11 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
 
                 {/* Second Row - Alignment and Lists */}
                 <div className="flex items-center gap-2 p-2 border-b border-slate-200">
-                    <Select onValueChange={(value) => {
+                    <Select value={editorUiState.headingValue} onValueChange={(value) => {
                         if (value === 'paragraph') editor.chain().focus().setParagraph().run();
-                        else if (value === 'heading1') editor.chain().focus().toggleHeading({ level: 1 }).run();
-                        else if (value === 'heading2') editor.chain().focus().toggleHeading({ level: 2 }).run();
-                        else if (value === 'heading3') editor.chain().focus().toggleHeading({ level: 3 }).run();
+                        else if (value === 'heading1') editor.chain().focus().setHeading({ level: 1 }).run();
+                        else if (value === 'heading2') editor.chain().focus().setHeading({ level: 2 }).run();
+                        else if (value === 'heading3') editor.chain().focus().setHeading({ level: 3 }).run();
                     }}>
                         <SelectTrigger className="w-[120px] h-8 text-xs bg-white">
                             <SelectValue placeholder="Normal" />
@@ -444,7 +639,7 @@ export const TemplateEditor = ({ content, onChange }: TemplateEditorProps) => {
 
             {/* Helper text */}
             <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs text-slate-500">
-                💡 Tip: You can drag and drop images directly into the editor or paste them from clipboard
+                💡 Tip: Click an inserted image to reveal the resize handle in the corner. You can also drag and drop images directly into the editor or paste them from clipboard.
             </div>
         </div>
     );

@@ -1,4 +1,6 @@
 const Template = require('../models/template.model');
+const Folder = require('../models/folder.model');
+const { hasFolderAccess } = require('../services/folderAccessService');
 
 // Get all public templates
 exports.getAllTemplates = async (req, res) => {
@@ -16,7 +18,22 @@ exports.getAllTemplates = async (req, res) => {
 // Get user's templates
 exports.getMyTemplates = async (req, res) => {
     try {
-        const templates = await Template.find({ author: req.user.id })
+        const privateFolders = await Folder.find({
+            author: req.user.id,
+            isPublic: false
+        }).select('_id');
+
+        const lockedPrivateFolderIds = privateFolders
+            .filter((folder) => !hasFolderAccess(req.user.id, folder._id))
+            .map((folder) => folder._id);
+
+        const query = { author: req.user.id };
+        if (lockedPrivateFolderIds.length > 0) {
+            query.folder = { $nin: lockedPrivateFolderIds };
+        }
+
+        const templates = await Template.find(query)
+            .populate('author', 'name username profileImage')
             .sort({ createdAt: -1 });
         res.json(templates);
     } catch (error) {

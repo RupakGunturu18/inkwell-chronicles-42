@@ -10,8 +10,9 @@ import Index from "./pages/Index";
 import Post from "./pages/Post";
 import Write from "./pages/Write";
 import Profile from "./pages/Profile";
-import Templates from "./pages/Templates";
 import Folders from "./pages/Folders";
+// Next sprint: re-enable templates route.
+// import Templates from "./pages/Templates";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -45,7 +46,9 @@ const App = () => (
             <Route path="/write" element={<ProtectedRoute><Write /></ProtectedRoute>} />
             <Route path="/edit/:id" element={<ProtectedRoute><Write /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+            {/* Next sprint: re-enable templates route.
             <Route path="/templates" element={<ProtectedRoute><Templates /></ProtectedRoute>} />
+            */}
             <Route path="/folders" element={<ProtectedRoute><Folders /></ProtectedRoute>} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/login" element={<Login />} />

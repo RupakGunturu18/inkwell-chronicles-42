@@ -33,7 +33,6 @@ import {
     Lock,
     Globe,
     FolderPlus,
-    ArrowLeft
 } from 'lucide-react';
 import axios from 'axios';
 import { Navbar } from '@/components/Navbar';
@@ -58,7 +57,6 @@ interface Folder {
     name: string;
     description: string;
     isPublic: boolean;
-    pin?: string;
     coverImage?: string;
     parentFolder?: string | null;
     createdAt: string;
@@ -144,7 +142,7 @@ export default function Templates() {
     };
 
     const handleFolderClick = (folder: Folder) => {
-        if (!folder.isPublic && folder.pin) {
+        if (!folder.isPublic) {
             setPendingFolder(folder);
             setShowPinDialog(true);
         } else {
@@ -299,6 +297,23 @@ export default function Templates() {
                 variant: 'destructive',
             });
         }
+    };
+
+    const getTemplatePreviewText = (html: string) => {
+        return html
+            .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/gi, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
+    const getTemplatePreviewHtml = (html: string) => {
+        return html
+            .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+            .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
+            .replace(/on\w+\s*=\s*'[^']*'/gi, '');
     };
 
     return (
@@ -466,30 +481,44 @@ export default function Templates() {
                                 {myTemplates.map((template) => (
                                     <div
                                         key={template._id}
-                                        className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-slate-200 group"
+                                        className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all border border-slate-200 group overflow-hidden"
                                     >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                                    <FileText className="h-5 w-5 text-white" />
+                                        <div className="p-5 pb-4 border-b border-slate-100">
+                                            <div className="flex items-start justify-between gap-3 mb-3">
+                                                <div className="flex items-center gap-2 min-w-0">
+                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                                        <FileText className="h-5 w-5 text-white" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <h3 className="font-bold text-slate-900 truncate">{template.name}</h3>
+                                                        <p className="text-xs text-slate-500 uppercase tracking-wide">{template.category}</p>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-bold text-slate-900">{template.name}</h3>
-                                                    <p className="text-xs text-slate-500">{template.category}</p>
-                                                </div>
+                                                {template.isPublic ? (
+                                                    <div className="inline-flex items-center gap-1 rounded-full bg-emerald-50 text-emerald-700 px-2 py-1 text-[11px] font-medium">
+                                                        <Globe className="h-3 w-3" /> Public
+                                                    </div>
+                                                ) : (
+                                                    <div className="inline-flex items-center gap-1 rounded-full bg-slate-100 text-slate-600 px-2 py-1 text-[11px] font-medium">
+                                                        <Lock className="h-3 w-3" /> Private
+                                                    </div>
+                                                )}
                                             </div>
-                                            {template.isPublic ? (
-                                                <Globe className="h-4 w-4 text-green-600" />
-                                            ) : (
-                                                <Lock className="h-4 w-4 text-slate-400" />
-                                            )}
                                         </div>
-                                        {template.description && (
-                                            <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                                                {template.description}
+
+                                        <div className="px-5 py-4 bg-slate-50/70 border-b border-slate-100">
+                                            <div className="rounded-lg border border-slate-200 bg-white p-3 h-48 overflow-hidden">
+                                                <div
+                                                    className="prose prose-sm max-w-none text-slate-700 [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-semibold [&_p]:text-xs [&_li]:text-xs"
+                                                    dangerouslySetInnerHTML={{ __html: getTemplatePreviewHtml(template.content) }}
+                                                />
+                                            </div>
+                                            <p className="text-[11px] text-slate-500 mt-2 line-clamp-1">
+                                                {getTemplatePreviewText(template.content)}
                                             </p>
-                                        )}
-                                        <div className="flex gap-2">
+                                        </div>
+
+                                        <div className="p-4 flex gap-2">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -528,24 +557,36 @@ export default function Templates() {
                                     {templates.map((template) => (
                                         <div
                                             key={template._id}
-                                            className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-slate-200"
+                                            className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all border border-slate-200 overflow-hidden"
                                         >
-                                            <div className="flex items-start gap-3 mb-4">
-                                                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                                                    <FileText className="h-5 w-5 text-white" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <h3 className="font-bold text-slate-900">{template.name}</h3>
-                                                    <p className="text-xs text-slate-500">
-                                                        by @{template.author.username}
-                                                    </p>
+                                            <div className="p-5 pb-4 border-b border-slate-100">
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center flex-shrink-0">
+                                                        <FileText className="h-5 w-5 text-white" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-slate-900 truncate">{template.name}</h3>
+                                                        <p className="text-xs text-slate-500 truncate">
+                                                            {template.author?.name ? `${template.author.name} · ` : ''}@{template.author?.username || 'unknown'}
+                                                        </p>
+                                                        <p className="text-[11px] text-slate-400 uppercase tracking-wide mt-1">{template.category}</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            {template.description && (
-                                                <p className="text-sm text-slate-600 mb-4 line-clamp-2">
-                                                    {template.description}
+
+                                            <div className="px-5 py-4 bg-slate-50/70 border-b border-slate-100">
+                                                <div className="rounded-lg border border-slate-200 bg-white p-3 h-48 overflow-hidden">
+                                                    <div
+                                                        className="prose prose-sm max-w-none text-slate-700 [&_h1]:text-base [&_h1]:font-bold [&_h2]:text-sm [&_h2]:font-semibold [&_p]:text-xs [&_li]:text-xs"
+                                                        dangerouslySetInnerHTML={{ __html: getTemplatePreviewHtml(template.content) }}
+                                                    />
+                                                </div>
+                                                <p className="text-[11px] text-slate-500 mt-2 line-clamp-1">
+                                                    {getTemplatePreviewText(template.content)}
                                                 </p>
-                                            )}
+                                            </div>
+
+                                            <div className="p-4">
                                             <Button
                                                 variant="outline"
                                                 size="sm"
@@ -563,6 +604,7 @@ export default function Templates() {
                                                 <Eye className="h-4 w-4 mr-2" />
                                                 Use Template
                                             </Button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

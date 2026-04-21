@@ -6,33 +6,33 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { FolderPlus, FileText, FolderOpen } from 'lucide-react';
+import { FolderPlus, FolderOpen } from 'lucide-react';
 import axios from 'axios';
 import { Navbar } from '@/components/Navbar';
 
-interface Template {
-    _id: string;
-    name: string;
-    description: string;
-    category: string;
-    content: string;
-    isPublic: boolean;
-    folder?: string | null;
-    author: {
-        name: string;
-        username: string;
-    };
-    createdAt: string;
-}
+// Next sprint: re-enable template model + folder template listing.
+// interface Template {
+//     _id: string;
+//     name: string;
+//     description: string;
+//     category: string;
+//     content: string;
+//     isPublic: boolean;
+//     folder?: string | null;
+//     author: {
+//         name: string;
+//         username: string;
+//     };
+//     createdAt: string;
+// }
 
 interface Folder {
     _id: string;
     name: string;
     description: string;
     isPublic: boolean;
-    pin?: string;
     coverImage?: string;
-    parentFolder?: string | null;
+    parentFolder: string | null;
     createdAt: string;
 }
 
@@ -43,7 +43,7 @@ interface Breadcrumb {
 
 export default function Folders() {
     const [folders, setFolders] = useState<Folder[]>([]);
-    const [templates, setTemplates] = useState<Template[]>([]);
+    // const [templates, setTemplates] = useState<Template[]>([]);
     const [currentFolder, setCurrentFolder] = useState<string | null>(null);
     const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([]);
 
@@ -58,7 +58,7 @@ export default function Folders() {
     useEffect(() => {
         if (isAuthenticated) {
             fetchFolders();
-            fetchTemplates();
+            // fetchTemplates();
         }
     }, [isAuthenticated, currentFolder]);
 
@@ -83,24 +83,24 @@ export default function Folders() {
         }
     };
 
-    const fetchTemplates = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/templates/my-templates', {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            // Filter templates by current folder
-            const filtered = response.data.filter((t: Template) =>
-                currentFolder ? t.folder === currentFolder : false
-            );
-            setTemplates(filtered);
-        } catch (error) {
-            console.error('Error fetching templates:', error);
-        }
-    };
+    // Next sprint: re-enable templates fetch scoped by current folder.
+    // const fetchTemplates = async () => {
+    //     try {
+    //         const token = localStorage.getItem('token');
+    //         const response = await axios.get('http://localhost:5000/api/templates/my-templates', {
+    //             headers: { Authorization: `Bearer ${token}` },
+    //         });
+    //         const filtered = response.data.filter((t: Template) =>
+    //             currentFolder ? t.folder === currentFolder : false
+    //         );
+    //         setTemplates(filtered);
+    //     } catch (error) {
+    //         console.error('Error fetching templates:', error);
+    //     }
+    // };
 
     const handleFolderClick = (folder: Folder) => {
-        if (!folder.isPublic && folder.pin) {
+        if (!folder.isPublic) {
             setPendingFolder(folder);
             setShowPinDialog(true);
         } else {
@@ -145,7 +145,7 @@ export default function Folders() {
                 description: 'Folder deleted successfully',
             });
             fetchFolders();
-            fetchTemplates();
+            // fetchTemplates();
         } catch (error) {
             console.error('Error deleting folder:', error);
             toast({
@@ -156,13 +156,14 @@ export default function Folders() {
         }
     };
 
-    const getTemplateCount = (folderId: string) => {
-        return templates.filter(t => t.folder === folderId).length;
-    };
-
     const getSubfolderCount = (folderId: string) => {
         return folders.filter(f => f.parentFolder === folderId).length;
     };
+
+    // Next sprint: re-enable template counters by folder.
+    // const getTemplateCount = (folderId: string) => {
+    //     return templates.filter(t => t.folder === folderId).length;
+    // };
 
     if (!isAuthenticated) {
         return (
@@ -198,7 +199,7 @@ export default function Folders() {
                                 My Folders
                             </h1>
                             <p className="text-slate-600">
-                                Organize your templates with folders and subfolders
+                                Organize your content with folders and subfolders
                             </p>
                         </div>
                         <Button
@@ -230,7 +231,7 @@ export default function Folders() {
                                             setShowFolderDialog(true);
                                         }}
                                         onDelete={handleDeleteFolder}
-                                        templateCount={getTemplateCount(folder._id)}
+                                        // templateCount={getTemplateCount(folder._id)}
                                         subfolderCount={getSubfolderCount(folder._id)}
                                     />
                                 ))}
@@ -244,8 +245,8 @@ export default function Folders() {
                             </h3>
                             <p className="text-slate-600 mb-6">
                                 {currentFolder
-                                    ? 'Create a subfolder to organize your templates'
-                                    : 'Create your first folder to start organizing templates'}
+                                    ? 'Create a subfolder to organize your content'
+                                    : 'Create your first folder to start organizing content'}
                             </p>
                             <Button
                                 onClick={() => {
@@ -260,7 +261,7 @@ export default function Folders() {
                         </div>
                     )}
 
-                    {/* Templates in Current Folder */}
+                    {/* Next sprint: restore template cards for current folder.
                     {currentFolder && templates.length > 0 && (
                         <div>
                             <h2 className="text-2xl font-bold text-slate-900 mb-4">Templates in this Folder</h2>
@@ -271,24 +272,22 @@ export default function Folders() {
                                         className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all border border-slate-200"
                                     >
                                         <div className="flex items-center gap-3 mb-4">
-                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                                                <FileText className="h-5 w-5 text-white" />
-                                            </div>
+                                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center" />
                                             <div>
                                                 <h3 className="font-bold text-slate-900">{template.name}</h3>
                                                 <p className="text-xs text-slate-500">{template.category}</p>
                                             </div>
                                         </div>
                                         {template.description && (
-                                            <p className="text-sm text-slate-600 line-clamp-2">
-                                                {template.description}
-                                            </p>
+                                            <p className="text-sm text-slate-600 line-clamp-2">{template.description}</p>
                                         )}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
+                    */}
+
                 </div>
             </div>
 

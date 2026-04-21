@@ -11,8 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "react-toastify";
-import { Camera, Loader2, Check, X, Edit, Trash2, Eye, EyeOff, FileText, Settings, LayoutGrid, MoreHorizontal } from "lucide-react";
+import { Camera, Loader2, Check, X, Edit, Trash2, Eye, EyeOff, FileText, Settings, LayoutGrid, MoreHorizontal, User } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +79,8 @@ const Profile = () => {
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [pendingDeletePostId, setPendingDeletePostId] = useState<string | null>(null);
 
   useEffect(() => {
     // Moved fetch calls to separate tab-aware functions
@@ -117,14 +129,24 @@ const Profile = () => {
   }, [user]);
 
   const handleDeletePost = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this post?")) return;
+    setPendingDeletePostId(id);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!pendingDeletePostId) {
+      return;
+    }
 
     try {
-      await postService.deletePost(id);
+      await postService.deletePost(pendingDeletePostId);
       toast.success("Post deleted");
       fetchUserPosts(); // Refresh active view
     } catch (error) {
       toast.error("Failed to delete post");
+    } finally {
+      setShowDeleteDialog(false);
+      setPendingDeletePostId(null);
     }
   };
 
@@ -281,6 +303,29 @@ const Profile = () => {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
 
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The selected post will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              onClick={() => {
+                setPendingDeletePostId(null);
+              }}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={confirmDeletePost}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <main className="flex-1">
         {/* Profile Header */}
         <div className="bg-white border-b border-slate-200">
@@ -288,8 +333,10 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row items-center gap-10 text-center md:text-left">
               <div className="relative group">
                 <Avatar className="h-32 w-32 md:h-44 md:w-44 border-4 md:border-8 border-slate-50 shadow-2xl transition-transform group-hover:scale-105 duration-300 aspect-square overflow-hidden rounded-full">
-                  <AvatarImage src={profileData.profileImage || `https://api.dicebear.com/7.x/initials/svg?seed=${user?.name || 'U'}`} alt={user?.name} className="object-cover w-full h-full" />
-                  <AvatarFallback className="text-4xl rounded-full">{user?.name?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                  <AvatarImage src={profileData.profileImage} alt={user?.name} className="object-cover w-full h-full" />
+                  <AvatarFallback className="rounded-full bg-slate-100 text-slate-600">
+                    <User className="h-12 w-12" />
+                  </AvatarFallback>
                 </Avatar>
                 <Button
                   size="icon"

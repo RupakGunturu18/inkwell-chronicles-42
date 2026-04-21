@@ -28,6 +28,7 @@ const Post = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [post, setPost] = useState<any>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
     if (id) fetchPost();
@@ -35,6 +36,7 @@ const Post = () => {
 
   const fetchPost = async () => {
     try {
+      setAccessDenied(false);
       const data = await postService.getPostById(id!);
       const postAuthorId = typeof data.authorId === 'object' ? data.authorId?._id : data.authorId;
       const isCurrentUser = user && (user.id === postAuthorId);
@@ -53,7 +55,13 @@ const Post = () => {
       });
     } catch (error) {
       console.error("Error fetching post:", error);
-      toast.error("Failed to load post");
+      const status = (error as any)?.response?.status;
+      if (status === 403) {
+        setAccessDenied(true);
+        toast.error("Unlock this private folder to read the blog");
+      } else {
+        toast.error("Failed to load post");
+      }
     } finally {
       setLoading(false);
     }
@@ -73,7 +81,9 @@ const Post = () => {
   if (!post) return (
     <div className="min-h-screen flex flex-col items-center justify-center">
       <Navbar />
-      <p className="text-xl text-muted-foreground mt-20">Post not found.</p>
+      <p className="text-xl text-muted-foreground mt-20">
+        {accessDenied ? "This post is inside a private folder and is locked." : "Post not found."}
+      </p>
     </div>
   );
 

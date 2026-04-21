@@ -35,6 +35,11 @@ const postSchema = new mongoose.Schema({
     type: Number,
     default: 50,
   },
+  folder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Folder',
+    default: null,
+  },
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -58,6 +63,7 @@ const postSchema = new mongoose.Schema({
 
 // Added compound index for fast profile queries
 postSchema.index({ authorId: 1, status: 1 });
+postSchema.index({ authorId: 1, folder: 1, status: 1 });
 postSchema.index({ status: 1 });
 postSchema.index({ createdAt: -1 });
 

@@ -47,6 +47,13 @@ interface TemplateApiItem {
   category?: string;
 }
 
+interface FolderOption {
+  _id: string;
+  name: string;
+  isPublic: boolean;
+  parentFolder: string | null;
+}
+
 interface ApiErrorPayload {
   response?: { data?: { message?: string } };
   message?: string;
@@ -63,6 +70,8 @@ const Write = () => {
   const [tagInput, setTagInput] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [imagePosition, setImagePosition] = useState(50);
+  const [folders, setFolders] = useState<FolderOption[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState("");
 
   const [templates, setTemplates] = useState<TemplateOption[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
@@ -89,6 +98,8 @@ const Write = () => {
           setTags(post.tags || []);
           setCoverImage(post.coverImage || "");
           setImagePosition(post.coverImagePosition || 50);
+          const folderId = typeof post.folder === "object" ? post.folder?._id : post.folder;
+          setSelectedFolderId(folderId || "");
         } catch (error) {
           console.error("Error fetching post for edit:", error);
           toast.error("Failed to load post for editing");
@@ -102,6 +113,33 @@ const Write = () => {
   }, [id, navigate]);
 
   useEffect(() => {
+    const fetchFolders = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const response = await fetch("http://localhost:5000/api/folders", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const data: unknown = await response.json();
+        if (Array.isArray(data)) {
+          setFolders(
+            data.filter((folder): folder is FolderOption => {
+              const maybeFolder = folder as Partial<FolderOption>;
+              return typeof maybeFolder._id === "string" && typeof maybeFolder.name === "string";
+            })
+          );
+        }
+      } catch {
+        // Folder selection is optional; keep the editor usable.
+      }
+    };
+
+    fetchFolders();
+
     const fetchTemplates = async () => {
       setTemplatesLoading(true);
       setTemplatesError("");
@@ -162,10 +200,10 @@ const Write = () => {
   useEffect(() => {
     const plain = content.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
     setHasUnsavedChanges(
-      title.trim().length > 0 || plain.length > 0 || tags.length > 0 || !!coverImage
+      title.trim().length > 0 || plain.length > 0 || tags.length > 0 || !!coverImage || !!selectedFolderId
     );
     setAutoSaved(false);
-  }, [title, content, tags, coverImage]);
+  }, [title, content, tags, coverImage, selectedFolderId]);
 
   useEffect(() => {
     const handle = (e: BeforeUnloadEvent) => {
@@ -200,6 +238,7 @@ const Write = () => {
       tags: currentTags,
       coverImage,
       coverImagePosition: imagePosition,
+      folder: selectedFolderId || null,
       status,
     };
     try {
@@ -212,7 +251,11 @@ const Write = () => {
       }
       setHasUnsavedChanges(false);
       setAutoSaved(true);
-      navigate(status === "published" ? "/" : "/profile");
+      if (status === "published" && selectedFolderId) {
+        navigate(`/folders?folder=${selectedFolderId}`);
+      } else {
+        navigate(status === "published" ? "/" : "/profile");
+      }
     } catch (error) {
       const apiError = error as ApiErrorPayload;
       toast.error(apiError.response?.data?.message || apiError.message || "Failed to save post");
@@ -452,6 +495,36 @@ const Write = () => {
               <p className="text-[11px] text-zinc-400">Template selection is disabled while editing an existing post.</p>
             </div>
           )}
+
+          {/* Folder selector */}
+          <div className="px-4 sm:px-6 py-3 border-b border-zinc-100 bg-white">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <span className="text-[10px] font-semibold text-zinc-400 uppercase tracking-widest flex-shrink-0">
+                Folder
+              </span>
+              <span className="text-[11px] text-zinc-400">
+                Save the post inside a folder to keep it private.
+              </span>
+            </div>
+            <Select value={selectedFolderId || "root"} onValueChange={(value) => setSelectedFolderId(value === "root" ? "" : value)}>
+              <SelectTrigger className="h-8 text-[12px] border-zinc-200 bg-zinc-50 text-zinc-500 max-w-xs focus:ring-0 focus:ring-offset-0 rounded-lg flex-1">
+                <SelectValue placeholder="No folder" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-zinc-200">
+                <SelectItem value="root" className="text-[13px]">
+                  No folder
+                </SelectItem>
+                {folders.map((folder) => (
+                  <SelectItem key={folder._id} value={folder._id} className="text-[13px]">
+                    {folder.name}
+                    <span className="ml-1.5 text-[10px] text-zinc-400">
+                      {folder.isPublic ? "· public" : "· private"}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Cover image */}
           {coverImage ? (

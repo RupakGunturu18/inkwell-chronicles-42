@@ -1,5 +1,6 @@
 const Folder = require('../models/folder.model');
 const Template = require('../models/template.model');
+const Post = require('../models/Post');
 const bcrypt = require('bcryptjs');
 const { grantFolderAccess, hasFolderAccess, revokeFolderAccess } = require('../services/folderAccessService');
 
@@ -34,7 +35,7 @@ exports.getFoldersByParent = async (req, res) => {
     }
 };
 
-// Get single folder with templates
+// Get single folder with posts
 exports.getFolder = async (req, res) => {
     try {
         const folder = await Folder.findById(req.params.id)
@@ -53,7 +54,12 @@ exports.getFolder = async (req, res) => {
             return res.status(403).json({ message: 'Folder is locked. Verify PIN to continue.' });
         }
 
-        // Get templates in this folder
+        // Get all of the owner's blog posts in this folder (published + drafts)
+        const posts = await Post.find({ folder: folder._id, authorId: req.user.id })
+            .populate('authorId', 'name username profileImage')
+            .sort({ createdAt: -1 });
+
+        // Keep template support around for next sprint
         const templates = await Template.find({ folder: folder._id })
             .sort({ createdAt: -1 });
 
@@ -63,6 +69,7 @@ exports.getFolder = async (req, res) => {
 
         res.json({
             folder,
+            posts,
             templates,
             subfolders
         });
@@ -190,6 +197,21 @@ exports.deleteFolder = async (req, res) => {
         }
 
         const { moveContentsTo } = req.body; // Optional: 'root' or another folder ID
+
+        // Move blog posts to new location
+        if (moveContentsTo === 'root') {
+            await Post.updateMany(
+                { folder: folder._id },
+                { folder: null }
+            );
+        } else if (moveContentsTo) {
+            await Post.updateMany(
+                { folder: folder._id },
+                { folder: moveContentsTo }
+            );
+        } else {
+            await Post.deleteMany({ folder: folder._id });
+        }
 
         // Move templates to new location
         if (moveContentsTo === 'root') {

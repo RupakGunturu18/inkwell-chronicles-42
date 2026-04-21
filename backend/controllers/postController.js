@@ -1,14 +1,16 @@
 const Post = require('../models/Post');
+const Folder = require('../models/folder.model');
+const { hasFolderAccess } = require('../services/folderAccessService');
 
 // Get all published posts
 exports.getAllPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ status: 'published' })
-      .populate('authorId', 'name profileImage') // Only name and image
-      .select('title authorId createdAt tags coverImage') // Strictly minimum fields
-      .sort({ createdAt: -1 }) // Newest blogs first
-      .limit(6)
+    const posts = await Post.find({ status: 'published', folder: null })
+      .populate('authorId', 'name profileImage')
+      .select('title content author authorId createdAt tags coverImage coverImagePosition')
+      .sort({ createdAt: -1 })
       .lean();
+
     res.status(200).json(posts);
   } catch (error) {
     console.error('Error in getAllPosts:', error);
@@ -21,10 +23,21 @@ exports.getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate('authorId', 'name username profileImage bio')
+      .populate('folder', 'isPublic author name')
       .populate('comments.user', 'name username profileImage')
       .lean();
 
     if (!post) return res.status(404).json({ message: 'Post not found' });
+
+    if (post.folder && !post.folder.isPublic) {
+      const hasAccess = post.folder.author?.toString() === req.user._id.toString()
+        || hasFolderAccess(req.user._id, post.folder._id);
+
+      if (!hasAccess) {
+        return res.status(403).json({ message: 'Access denied' });
+      }
+    }
+
     res.status(200).json(post);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -43,7 +56,8 @@ exports.getUserDrafts = async (req, res) => {
       status: 'draft'
     })
       .populate('authorId', 'name profileImage')
-      .select('title authorId createdAt tags coverImage')
+      .populate('folder', 'name isPublic')
+      .select('title authorId createdAt tags coverImage folder')
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
@@ -66,7 +80,8 @@ exports.getMyPosts = async (req, res) => {
       status: 'published'
     })
       .populate('authorId', 'name profileImage')
-      .select('title authorId createdAt tags coverImage')
+      .populate('folder', 'name isPublic parentFolder')
+      .select('title authorId createdAt tags coverImage folder')
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();
@@ -80,6 +95,14 @@ exports.getMyPosts = async (req, res) => {
 // Create a new post or draft
 exports.createPost = async (req, res) => {
   try {
+    let folder = null;
+    if (req.body.folder) {
+      folder = await Folder.findById(req.body.folder);
+      if (!folder || folder.author.toString() !== req.user._id.toString()) {
+        return res.status(400).json({ message: 'Invalid folder selected' });
+      }
+    }
+
     const post = new Post({
       title: req.body.title,
       content: req.body.content,
@@ -89,6 +112,7 @@ exports.createPost = async (req, res) => {
       tags: req.body.tags,
       coverImage: req.body.coverImage,
       coverImagePosition: req.body.coverImagePosition,
+      folder: folder ? folder._id : null,
     });
 
     const newPost = await post.save();
@@ -115,6 +139,19 @@ exports.updatePost = async (req, res) => {
     post.tags = req.body.tags || post.tags;
     post.coverImage = req.body.coverImage || post.coverImage;
     post.coverImagePosition = req.body.coverImagePosition !== undefined ? req.body.coverImagePosition : post.coverImagePosition;
+
+    if (req.body.folder !== undefined) {
+      if (req.body.folder === null || req.body.folder === '') {
+        post.folder = null;
+      } else {
+        const folder = await Folder.findById(req.body.folder);
+        if (!folder || folder.author.toString() !== req.user._id.toString()) {
+          return res.status(400).json({ message: 'Invalid folder selected' });
+        }
+
+        post.folder = folder._id;
+      }
+    }
 
     const updatedPost = await post.save();
     res.status(200).json(updatedPost);

@@ -3,6 +3,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock } from "lucide-react";
 
+const DEFAULT_COVER_IMAGE = "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1200&h=675&fit=crop";
+
 interface BlogCardProps {
   id: string;
   title: string;
@@ -32,7 +34,7 @@ export const BlogCard = ({
       <article className="group h-full bg-card rounded-xl overflow-hidden border border-border shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
         <div className="relative aspect-[16/9] overflow-hidden">
           <img
-            src={coverImage}
+            src={coverImage || DEFAULT_COVER_IMAGE}
             alt={title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />

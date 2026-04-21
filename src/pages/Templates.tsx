@@ -37,6 +37,8 @@ import {
 import axios from 'axios';
 import { Navbar } from '@/components/Navbar';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 interface Template {
     _id: string;
     name: string;
@@ -101,7 +103,7 @@ export default function Templates() {
 
     const fetchTemplates = async () => {
         try {
-            const response = await axios.get('http://localhost:5000/api/templates');
+            const response = await axios.get(`${API_BASE_URL}/api/templates`);
             setTemplates(response.data);
             console.log('Fetched templates:', response.data);
         } catch (error) {
@@ -112,7 +114,7 @@ export default function Templates() {
     const fetchMyTemplates = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/templates/my-templates', {
+            const response = await axios.get(`${API_BASE_URL}/api/templates/my-templates`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             // Filter templates by current folder
@@ -128,7 +130,7 @@ export default function Templates() {
     const fetchFolders = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/folders', {
+            const response = await axios.get(`${API_BASE_URL}/api/folders`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             // Filter folders by current parent
@@ -209,7 +211,7 @@ export default function Templates() {
 
             if (selectedTemplate) {
                 await axios.put(
-                    `http://localhost:5000/api/templates/${selectedTemplate._id}`,
+                    `${API_BASE_URL}/api/templates/${selectedTemplate._id}`,
                     templateData,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
@@ -218,7 +220,7 @@ export default function Templates() {
                     description: 'Template updated successfully',
                 });
             } else {
-                await axios.post('http://localhost:5000/api/templates', templateData, {
+                await axios.post(`${API_BASE_URL}/api/templates`, templateData, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 toast({
@@ -257,7 +259,7 @@ export default function Templates() {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/api/templates/${templateId}`, {
+            await axios.delete(`${API_BASE_URL}/api/templates/${templateId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             toast({
@@ -279,7 +281,7 @@ export default function Templates() {
     const handleDeleteFolder = async (folderId: string) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/api/folders/${folderId}`, {
+            await axios.delete(`${API_BASE_URL}/api/folders/${folderId}`, {
                 headers: { Authorization: `Bearer ${token}` },
                 data: { moveContentsTo: null } // Delete all contents
             });

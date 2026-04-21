@@ -13,6 +13,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Navbar } from '@/components/Navbar';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 interface Folder {
     _id: string;
     name: string;
@@ -72,10 +74,10 @@ export default function Folders() {
 
                 if (!currentFolder) {
                     const [foldersResponse, postsResponse] = await Promise.all([
-                        axios.get('http://localhost:5000/api/folders', {
+                        axios.get(`${API_BASE_URL}/api/folders`, {
                             headers: { Authorization: `Bearer ${token}` },
                         }),
-                        axios.get('http://localhost:5000/api/posts/my-posts', {
+                        axios.get(`${API_BASE_URL}/api/posts/my-posts`, {
                             headers: { Authorization: `Bearer ${token}` },
                         }),
                     ]);
@@ -95,7 +97,7 @@ export default function Folders() {
                     return;
                 }
 
-                const response = await axios.get(`http://localhost:5000/api/folders/${currentFolder}`, {
+                const response = await axios.get(`${API_BASE_URL}/api/folders/${currentFolder}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -141,7 +143,7 @@ export default function Folders() {
         const loadFolderFromQuery = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const response = await axios.get('http://localhost:5000/api/folders', {
+                const response = await axios.get(`${API_BASE_URL}/api/folders`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -173,7 +175,7 @@ export default function Folders() {
     const fetchFolders = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/folders', {
+            const response = await axios.get(`${API_BASE_URL}/api/folders`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setAllFolders(response.data);
@@ -194,7 +196,7 @@ export default function Folders() {
     const fetchPosts = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/posts/my-posts', {
+            const response = await axios.get(`${API_BASE_URL}/api/posts/my-posts`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
             const filtered = response.data.filter((post: BlogPost) => {
@@ -251,7 +253,7 @@ export default function Folders() {
     const handleDeleteFolder = async (folderId: string) => {
         try {
             const token = localStorage.getItem('token');
-            await axios.delete(`http://localhost:5000/api/folders/${folderId}`, {
+            await axios.delete(`${API_BASE_URL}/api/folders/${folderId}`, {
                 headers: { Authorization: `Bearer ${token}` },
                 data: { moveContentsTo: null }
             });
@@ -278,7 +280,7 @@ export default function Folders() {
         try {
             setMovingPost(true);
             await axios.put(
-                `http://localhost:5000/api/posts/${selectedPost._id}`,
+                `${API_BASE_URL}/api/posts/${selectedPost._id}`,
                 { folder: targetFolderId || null },
                 { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
             );

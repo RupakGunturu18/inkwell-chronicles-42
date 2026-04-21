@@ -12,6 +12,8 @@ import { Lock } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 interface PinDialogProps {
     open: boolean;
     onClose: () => void;
@@ -40,7 +42,7 @@ export const PinDialog = ({ open, onClose, folderId, onSuccess }: PinDialogProps
         try {
             const token = localStorage.getItem('token');
             const response = await axios.post(
-                `http://localhost:5000/api/folders/${folderId}/verify-pin`,
+                `${API_BASE_URL}/api/folders/${folderId}/verify-pin`,
                 { pin },
                 { headers: { Authorization: `Bearer ${token}` } }
             );

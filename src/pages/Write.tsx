@@ -59,6 +59,8 @@ interface ApiErrorPayload {
   message?: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const Write = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -116,7 +118,7 @@ const Write = () => {
     const fetchFolders = async () => {
       try {
         const token = localStorage.getItem("token");
-        const response = await fetch("http://localhost:5000/api/folders", {
+        const response = await fetch(`${API_BASE_URL}/api/folders`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
 
@@ -163,8 +165,8 @@ const Write = () => {
 
       try {
         const [publicRes, myRes] = await Promise.allSettled([
-          fetch("http://localhost:5000/api/templates"),
-          fetch("http://localhost:5000/api/templates/my-templates", {
+          fetch(`${API_BASE_URL}/api/templates`),
+          fetch(`${API_BASE_URL}/api/templates/my-templates`, {
             headers: token ? { Authorization: `Bearer ${token}` } : {},
           }),
         ]);

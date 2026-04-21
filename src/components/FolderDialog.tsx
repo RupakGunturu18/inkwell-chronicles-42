@@ -13,6 +13,8 @@ import { FolderPlus, FolderEdit, Lock, Globe, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 interface FolderData {
     _id?: string;
     name: string;
@@ -85,12 +87,12 @@ export const FolderDialog = ({ open, onClose, onSuccess, folder, parentFolderId 
             };
 
             if (isEditMode) {
-                await axios.put(`http://localhost:5000/api/folders/${folder._id}`, folderData, {
+                await axios.put(`${API_BASE_URL}/api/folders/${folder._id}`, folderData, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 toast({ title: 'Folder updated' });
             } else {
-                await axios.post('http://localhost:5000/api/folders', folderData, {
+                await axios.post(`${API_BASE_URL}/api/folders`, folderData, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 toast({ title: 'Folder created' });

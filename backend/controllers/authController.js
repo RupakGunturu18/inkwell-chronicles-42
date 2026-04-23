@@ -199,7 +199,7 @@ exports.forgotPassword = async (req, res) => {
         await user.save();
 
         // Send email
-        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password/${resetToken}`;
+        const resetUrl = `${process.env.FRONTEND_URL || 'https://inkwell-chronicles-42-production.up.railway.app'}/reset-password/${resetToken}`;
 
         try {
             await sendEmail({

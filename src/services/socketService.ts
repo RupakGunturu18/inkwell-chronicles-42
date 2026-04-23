@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const SOCKET_BASE_URL = import.meta.env.VITE_API_URL || 'https://inkwell-chronicles-42.onrender.com';
 const SOCKET_URL = SOCKET_BASE_URL.replace(/\/$/, '');
 
 class SocketService {

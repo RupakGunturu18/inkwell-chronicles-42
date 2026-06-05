@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import BlogLanding from "@/components/BlogLanding";
 import Index from "./pages/Index";
 import Post from "./pages/Post";
 import Write from "./pages/Write";
@@ -41,7 +42,8 @@ const App = () => (
         />
         <BrowserRouter future={{ v7_startTransition: true }}>
           <Routes>
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/" element={<BlogLanding />} />
+            <Route path="/blog" element={<ProtectedRoute><Index /></ProtectedRoute>} />
             <Route path="/post/:id" element={<ProtectedRoute><Post /></ProtectedRoute>} />
             <Route path="/write" element={<ProtectedRoute><Write /></ProtectedRoute>} />
             <Route path="/edit/:id" element={<ProtectedRoute><Write /></ProtectedRoute>} />

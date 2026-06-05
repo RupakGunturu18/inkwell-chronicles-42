@@ -77,7 +77,7 @@ const Signup = () => {
     try {
       await signup(name.trim(), username, email, password);
       toast.success("Account created successfully! 🎉");
-      navigate("/");
+      navigate("/blog");
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || "Signup failed. Please try again.";
       toast.error(errorMessage);

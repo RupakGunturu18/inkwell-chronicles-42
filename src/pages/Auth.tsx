@@ -26,7 +26,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-accent/5 to-primary/5 p-4">
       <div className="w-full max-w-md animate-scale-in">
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center space-x-2 mb-6">
+          <Link to="/blog" className="inline-flex items-center space-x-2 mb-6">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent" />
             <span className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               BlogHub

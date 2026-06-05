@@ -6,7 +6,9 @@ const API_URL = `${API_BASE_URL}/api/posts`;
 // Create axios instance
 const api = axios.create({
     baseURL: API_URL,
-    timeout: 30000, // Increased to 30s
+    timeout: 30000,
+    maxBodyLength: 5242880,
+    maxContentLength: 5242880,
     headers: {
         'Content-Type': 'application/json'
     }

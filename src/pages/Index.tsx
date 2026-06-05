@@ -33,6 +33,7 @@ const BlogCard = ({ post }: { post: any }) => (
         <img
           src={post.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&h=450&fit=crop"}
           alt={post.title}
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           style={{ objectPosition: `50% ${post.coverImagePosition || 50}%` }}
         />
@@ -287,6 +288,7 @@ const Index = () => {
                       <img
                         src={post.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200&h=200&fit=crop"}
                         alt={post.title}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         style={{ objectPosition: `50% ${post.coverImagePosition || 50}%` }}
                       />

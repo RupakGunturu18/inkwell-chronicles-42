@@ -62,7 +62,7 @@ export const Navbar = () => {
           : "w-full h-16 bg-white/80 backdrop-blur-lg border-b border-slate-100"
           }`}
       >
-        <Link to="/" className="flex items-center space-x-2 group ml-4 md:ml-6">
+        <Link to="/blog" className="flex items-center space-x-2 group ml-4 md:ml-6">
           <img
             src="/blog.avif"
             alt="BlogHub logo"
@@ -75,7 +75,7 @@ export const Navbar = () => {
 
         {/* Center Navigation */}
         <div className="hidden md:flex items-center gap-8">
-          <Link to="/" className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-all relative group">
+          <Link to="/blog" className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-all relative group">
             Home
             <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
           </Link>

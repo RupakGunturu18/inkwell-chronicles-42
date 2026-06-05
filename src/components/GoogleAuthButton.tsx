@@ -66,7 +66,7 @@ export const GoogleAuthButton = ({ mode }: GoogleAuthButtonProps) => {
         try {
           await loginWithGoogle(response.credential);
           toast.success(mode === "signin" ? "Welcome back!" : "Account created with Google!");
-          navigate("/");
+          navigate("/blog");
         } catch (error: any) {
           toast.error(error?.response?.data?.message || "Google login failed");
         }

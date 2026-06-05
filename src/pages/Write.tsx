@@ -13,9 +13,15 @@ import {
 } from "@/components/ui/select";
 import {
   Upload, X, Save, Send, Tag, FileText,
-  Loader2, ArrowLeft, Bold, Italic, Underline, FileDown,
+  Loader2, ArrowLeft, Bold, Italic, Underline, FileDown, ChevronDown,
   Heading1, Heading2, List, Link2, Image, Quote, Check,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { postService } from "@/services/postService";
 import { toast } from "react-toastify";
@@ -307,6 +313,42 @@ ${content}</div>`;
     html2pdf().set(opt).from(element).save(`blog-post-${Date.now()}.pdf`);
   }, [content]);
 
+  const saveAsDoc = useCallback(() => {
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Blog Post</title>
+<style>
+  body{font-family:ui-serif,Georgia,Cambria,'Times New Roman',Times,serif;font-size:1.125rem;line-height:1.7777778;color:#475569;max-width:800px;margin:0 auto;padding:2rem;white-space:pre-wrap}
+  h1,h2,h3,h4{font-weight:700;color:#1e293b;line-height:1.3;margin:1.5em 0 0.5em}
+  h1{font-size:2.25em;font-weight:800;margin-top:0}
+  h2{font-size:1.5em}
+  h3{font-size:1.25em;font-weight:600}
+  p{margin:0 0 1.25em}
+  ul,ol{padding-left:1.625em;margin:0 0 1.25em}
+  li{margin:0.5em 0}
+  img{max-width:100%;height:auto;border-radius:0.5em;margin:2em 0}
+  a{color:#1e293b;font-weight:600;text-decoration:underline}
+  blockquote{font-style:italic;border-left:0.25rem solid #e2e8f0;padding-left:1em;margin:1.6em 0;color:#64748b}
+  table{font-size:0.875em;width:100%;border-collapse:collapse;margin:1.25em 0}
+  th,td{border:1px solid #e2e8f0;padding:0.75em 0.5em;text-align:left}
+  th{font-weight:600}
+  hr{margin:3em 0;border:none;border-top:1px solid #e2e8f0}
+  pre{background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5em;padding:1em;font-size:0.875em}
+  code{font-size:0.875em;font-weight:600;color:#1e293b}
+  pre code{font-weight:400}
+  strong{color:#1e293b}
+</style>
+</head>
+<body>${content}</body></html>`;
+    const blob = new Blob([html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blog-post-${Date.now()}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [content]);
+
   const getReadableDate = () =>
     new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
@@ -403,26 +445,29 @@ ${content}</div>`;
             {id ? "Editing" : "Draft"}
           </span>
 
-          <button
-            onClick={() => handleSave("draft")}
-            disabled={isSubmitting}
-            className="h-8 px-3 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors disabled:opacity-50"
-          >
-            {isSubmitting ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
-            <span className="hidden sm:inline">Save draft</span>
-          </button>
-
-          <button
-            onClick={saveAsPdf}
-            className="h-8 px-3 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Save as PDF</span>
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="h-8 px-3 flex items-center gap-1.5 text-[13px] font-medium text-zinc-700 border border-zinc-200 rounded-lg hover:bg-zinc-50 transition-colors">
+                <Save className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Save</span>
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={() => handleSave("draft")} disabled={isSubmitting}>
+                <Save className="w-4 h-4 mr-2" />
+                Save Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={saveAsPdf}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Save as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={saveAsDoc}>
+                <FileText className="w-4 h-4 mr-2" />
+                Save as DOC
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <button
             onClick={() => handleSave("published")}
@@ -755,21 +800,29 @@ ${content}</div>`;
 
         {/* Mobile sticky bottom bar */}
         <div className="sm:hidden mt-4 flex gap-3">
-          <button
-            onClick={() => handleSave("draft")}
-            disabled={isSubmitting}
-            className="flex-1 h-11 flex items-center justify-center gap-2 text-[14px] font-medium text-zinc-700 border border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors disabled:opacity-50 shadow-sm"
-          >
-            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save draft
-          </button>
-          <button
-            onClick={saveAsPdf}
-            className="flex-1 h-11 flex items-center justify-center gap-2 text-[14px] font-medium text-zinc-700 border border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors shadow-sm"
-          >
-            <FileDown className="w-4 h-4" />
-            PDF
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex-1 h-11 flex items-center justify-center gap-2 text-[14px] font-medium text-zinc-700 border border-zinc-200 rounded-xl bg-white hover:bg-zinc-50 transition-colors shadow-sm">
+                <Save className="w-4 h-4" />
+                Save
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuItem onClick={() => handleSave("draft")} disabled={isSubmitting}>
+                <Save className="w-4 h-4 mr-2" />
+                Save Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={saveAsPdf}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Save as PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={saveAsDoc}>
+                <FileText className="w-4 h-4 mr-2" />
+                Save as DOC
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             onClick={() => handleSave("published")}
             disabled={isSubmitting}

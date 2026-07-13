@@ -13,7 +13,7 @@ import { FolderPlus, FolderEdit, Lock, Globe, Loader2 } from 'lucide-react';
 import axios from 'axios';
 import { useToast } from '@/hooks/use-toast';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://inkwell-chronicles-42.onrender.com';
 
 interface FolderData {
     _id?: string;

@@ -52,7 +52,7 @@ import {
 import { SkeletonPost, ProfileSkeleton } from "@/components/SkeletonPost";
 import { compressImage } from "@/lib/utils";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://inkwell-chronicles-42.onrender.com";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);

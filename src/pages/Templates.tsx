@@ -37,7 +37,7 @@ import {
 import axios from 'axios';
 import { Navbar } from '@/components/Navbar';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://inkwell-chronicles-42.onrender.com';
 
 interface Template {
     _id: string;

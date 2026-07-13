@@ -14,7 +14,9 @@ app.use(compression());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'https://inkwell-chronicles-42.vercel.app',
+    origin: (process.env.FRONTEND_URL || 'https://inkwell-chronicles-42.vercel.app')
+      .split(',')
+      .concat(['http://localhost:5173', 'http://localhost:8080', 'http://localhost:3000']),
     methods: ['GET', 'POST']
   }
 });

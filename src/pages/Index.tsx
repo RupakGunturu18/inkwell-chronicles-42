@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, TrendingUp, Sparkles, ArrowRight, Clock, Calendar, Filter } from "lucide-react";
+import { Search, TrendingUp, Sparkles, ArrowRight, Clock, Calendar, Filter, Edit, FileDown, MoreHorizontal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { postService } from "@/services/postService";
+import { saveAsPdf, saveAsDoc } from "@/lib/exportPost";
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -26,8 +27,14 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const BlogCard = ({ post }: { post: any }) => (
-  <Link to={`/post/${post.id}`}>
+const BlogCard = ({ post, user }: { post: any; user: any }) => {
+  const navigate = useNavigate();
+  const postAuthorId = typeof post.rawAuthorId === 'object' ? post.rawAuthorId?._id : post.rawAuthorId;
+  const isOwnPost = user && user.id === postAuthorId;
+
+  return (
+    <div className="relative h-full">
+    <Link to={`/post/${post.id}`}>
     <article className="group bg-white rounded-2xl overflow-hidden border border-gray-200 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
       <div className="relative overflow-hidden aspect-video">
         <img
@@ -77,10 +84,51 @@ const BlogCard = ({ post }: { post: any }) => (
         </div>
       </div>
     </article>
-  </Link>
-);
+    </Link>
+    {isOwnPost && (
+      <div className="absolute top-3 left-3">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              onClick={(e) => e.preventDefault()}
+              className="h-8 w-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm transition-colors"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" sideOffset={4} className="w-40">
+            <DropdownMenuItem
+              onClick={(e) => { e.preventDefault(); navigate(`/edit/${post.id}`); }}
+              className="flex items-center gap-2 text-sm cursor-pointer"
+            >
+              <Edit className="w-3.5 h-3.5" /> Edit
+            </DropdownMenuItem>
+            {post.rawContent && (
+              <>
+                <DropdownMenuItem
+                  onClick={(e) => { e.preventDefault(); saveAsPdf(post.rawContent, post.title); }}
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                >
+                  <FileDown className="w-3.5 h-3.5" /> Download PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => { e.preventDefault(); saveAsDoc(post.rawContent, post.title); }}
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                >
+                  <FileDown className="w-3.5 h-3.5" /> Download DOC
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    )}
+    </div>
+  );
+};
 
 const Index = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [blogPosts, setBlogPosts] = useState<any[]>([]);
   const [myPosts, setMyPosts] = useState<any[]>([]);
@@ -103,6 +151,8 @@ const Index = () => {
             excerpt: post.excerpt || (post.content ? post.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No content available.'),
             coverImage: post.coverImage,
             coverImagePosition: post.coverImagePosition,
+            rawAuthorId: post.authorId,
+            rawContent: post.content,
             author: {
               name: post.authorId?.name || post.author,
               avatar: (isCurrentUser && user.profileImage)
@@ -282,27 +332,65 @@ const Index = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {myPosts.map((post) => (
-                <Link key={post._id} to={`/post/${post._id}`} className="group block">
-                  <div className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-lg transition-all flex gap-4 h-32 items-center">
-                    <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
-                      <img
-                        src={post.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200&h=200&fit=crop"}
-                        alt={post.title}
-                        loading="lazy"
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        style={{ objectPosition: `50% ${post.coverImagePosition || 50}%` }}
-                      />
+                <div key={post._id} className="relative group block">
+                  <Link to={`/post/${post._id}`} className="block">
+                    <div className="bg-white rounded-2xl border border-slate-100 p-4 hover:shadow-lg transition-all flex gap-4 h-32 items-center">
+                      <div className="w-24 h-24 rounded-xl overflow-hidden flex-shrink-0">
+                        <img
+                          src={post.coverImage || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=200&h=200&fit=crop"}
+                          alt={post.title}
+                          loading="lazy"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          style={{ objectPosition: `50% ${post.coverImagePosition || 50}%` }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight text-left">
+                          {post.title}
+                        </h3>
+                        <p className="text-slate-400 text-[10px] mt-2 font-medium text-left">
+                          {formatDate(post.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-tight text-left">
-                        {post.title}
-                      </h3>
-                      <p className="text-slate-400 text-[10px] mt-2 font-medium text-left">
-                        {formatDate(post.createdAt)}
-                      </p>
-                    </div>
+                  </Link>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          onClick={(e) => e.preventDefault()}
+                          className="h-7 w-7 flex items-center justify-center rounded-full bg-white shadow-sm text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors"
+                        >
+                          <MoreHorizontal className="w-3.5 h-3.5" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" sideOffset={4} className="w-40">
+                        <DropdownMenuItem
+                          onClick={(e) => { e.preventDefault(); navigate(`/edit/${post._id}`); }}
+                          className="flex items-center gap-2 text-sm cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5" /> Edit
+                        </DropdownMenuItem>
+                        {post.content && (
+                          <>
+                            <DropdownMenuItem
+                              onClick={(e) => { e.preventDefault(); saveAsPdf(post.content, post.title); }}
+                              className="flex items-center gap-2 text-sm cursor-pointer"
+                            >
+                              <FileDown className="w-3.5 h-3.5" /> Download PDF
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => { e.preventDefault(); saveAsDoc(post.content, post.title); }}
+                              className="flex items-center gap-2 text-sm cursor-pointer"
+                            >
+                              <FileDown className="w-3.5 h-3.5" /> Download DOC
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
             <div className="h-px bg-slate-100 w-full mt-12 mb-4"></div>
@@ -325,7 +413,7 @@ const Index = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                   className="opacity-0 animate-[fadeIn_0.5s_ease-out_forwards]"
                 >
-                  <BlogCard post={post} />
+                  <BlogCard post={post} user={user} />
                 </div>
               ))}
             </div>

@@ -40,8 +40,9 @@ import { toast } from "react-toastify";
 import {
   Camera, Loader2, Check, X, Edit, Trash2,
   Eye, EyeOff, FileText, Settings, LayoutGrid,
-  MoreHorizontal, User, BookOpen, PenLine
+  MoreHorizontal, User, BookOpen, PenLine, FileDown
 } from "lucide-react";
+import { saveAsPdf, saveAsDoc } from "@/lib/exportPost";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -361,6 +362,22 @@ const Profile = () => {
               >
                 <FileText className="w-3.5 h-3.5 text-gray-400" /> Send to folder
               </DropdownMenuItem>
+              {item.content && (
+                <>
+                  <DropdownMenuItem
+                    onClick={() => saveAsPdf(item.content, item.title)}
+                    className="flex items-center gap-2 text-[13px] font-medium text-gray-700 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+                  >
+                    <FileDown className="w-3.5 h-3.5 text-gray-400" /> Download PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => saveAsDoc(item.content, item.title)}
+                    className="flex items-center gap-2 text-[13px] font-medium text-gray-700 rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50 focus:bg-gray-50"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-gray-400" /> Download DOC
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator className="my-1 bg-gray-100" />
               <DropdownMenuItem
                 onClick={() => handleDeletePost(item._id)}

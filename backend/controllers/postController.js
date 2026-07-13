@@ -81,7 +81,7 @@ exports.getMyPosts = async (req, res) => {
     })
       .populate('authorId', 'name profileImage')
       .populate('folder', 'name isPublic parentFolder')
-      .select('title authorId createdAt tags coverImage folder')
+      .select('title content authorId createdAt tags coverImage folder')
       .sort({ createdAt: -1 })
       .limit(10)
       .lean();

@@ -6,10 +6,17 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { FolderPlus, FolderOpen, FileText, CalendarDays, ChevronRight, Lock, ArrowRightLeft } from 'lucide-react';
+import { FolderPlus, FolderOpen, FileText, CalendarDays, ChevronRight, Lock, ArrowRightLeft, Edit, FileDown, MoreHorizontal } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { saveAsPdf, saveAsDoc } from '@/lib/exportPost';
 import axios from 'axios';
 import { Navbar } from '@/components/Navbar';
 
@@ -841,16 +848,53 @@ export default function Folders() {
                                                         year: 'numeric',
                                                     })}
                                                 </div>
-                                                <button
-                                                    className="folder-action-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        openMovePostDialog(post);
-                                                    }}
-                                                    title="Move to folder"
-                                                >
-                                                    <ArrowRightLeft size={13} />
-                                                </button>
+                                                <div style={{ display: 'flex', gap: 2 }}>
+                                                    <button
+                                                        className="folder-action-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openMovePostDialog(post);
+                                                        }}
+                                                        title="Move to folder"
+                                                    >
+                                                        <ArrowRightLeft size={13} />
+                                                    </button>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <button
+                                                                className="folder-action-btn"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                                title="More actions"
+                                                            >
+                                                                <MoreHorizontal size={13} />
+                                                            </button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" sideOffset={4} className="w-40">
+                                                            <DropdownMenuItem
+                                                                onClick={(e) => { e.stopPropagation(); navigate(`/edit/${post._id}`); }}
+                                                                className="flex items-center gap-2 text-sm cursor-pointer"
+                                                            >
+                                                                <Edit className="w-3.5 h-3.5" /> Edit
+                                                            </DropdownMenuItem>
+                                                            {post.content && (
+                                                                <>
+                                                                    <DropdownMenuItem
+                                                                        onClick={(e) => { e.stopPropagation(); saveAsPdf(post.content, post.title); }}
+                                                                        className="flex items-center gap-2 text-sm cursor-pointer"
+                                                                    >
+                                                                        <FileDown className="w-3.5 h-3.5" /> Download PDF
+                                                                    </DropdownMenuItem>
+                                                                    <DropdownMenuItem
+                                                                        onClick={(e) => { e.stopPropagation(); saveAsDoc(post.content, post.title); }}
+                                                                        className="flex items-center gap-2 text-sm cursor-pointer"
+                                                                    >
+                                                                        <FileDown className="w-3.5 h-3.5" /> Download DOC
+                                                                    </DropdownMenuItem>
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
                                             </div>
                                             <div className="post-card-title">{post.title}</div>
                                             {post.tags && post.tags.length > 0 && (

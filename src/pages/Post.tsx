@@ -1,5 +1,5 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { postService } from "@/services/postService";
 import { Navbar } from "@/components/Navbar";
@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Calendar, Clock, ArrowLeft, Edit } from "lucide-react";
+import { Calendar, Clock, ArrowLeft, Edit, FileDown, FileText } from "lucide-react";
 import { toast } from "react-toastify";
 
 const formatDate = (dateString: string) => {
@@ -69,6 +69,79 @@ const Post = () => {
 
   const isAuthor = user && post && user.id === post.authorId;
 
+  const saveAsPdf = useCallback(async () => {
+    if (!post) return;
+    const html2pdf = (await import('html2pdf.js')).default;
+    const opt = {
+      margin: [0.5, 0.5, 0.5, 0.5],
+      image: { type: 'jpeg', quality: 0.8 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+    };
+    const element = document.createElement('div');
+    element.innerHTML = `<div style="font-family:ui-serif,Georgia,Cambria,'Times New Roman',Times,serif;font-size:1.125rem;line-height:1.7777778;color:#475569;max-width:800px;margin:0 auto;padding:2rem;white-space:pre-wrap">
+<style>
+  h1,h2,h3,h4{font-weight:700;color:#1e293b;line-height:1.3;margin:1.5em 0 0.5em}
+  h1{font-size:2.25em;font-weight:800;margin-top:0}
+  h2{font-size:1.5em}
+  h3{font-size:1.25em;font-weight:600}
+  p{margin:0 0 1.25em}
+  ul,ol{padding-left:1.625em;margin:0 0 1.25em}
+  li{margin:0.5em 0}
+  img{max-width:100%;height:auto;border-radius:0.5em;margin:2em 0;display:block}
+  a{color:#1e293b;font-weight:600;text-decoration:underline}
+  blockquote{font-style:italic;border-left:0.25rem solid #e2e8f0;padding-left:1em;margin:1.6em 0;color:#64748b}
+  table{font-size:0.875em;width:100%;border-collapse:collapse;margin:1.25em 0}
+  thead{border-bottom:1px solid #cbd5e1;text-align:left}
+  th{font-weight:600;padding:0.75em 0.5em;vertical-align:bottom;border:1px solid #e2e8f0}
+  td{padding:0.75em 0.5em;vertical-align:baseline;border:1px solid #e2e8f0}
+  hr{margin:3em 0;border:none;border-top:1px solid #e2e8f0}
+  pre{background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5em;padding:1em;overflow-x:auto;font-size:0.875em}
+  code{font-size:0.875em;font-weight:600;color:#1e293b}
+  pre code{font-weight:400}
+  strong{color:#1e293b}
+</style>
+${post.content}</div>`;
+    html2pdf().set(opt).from(element).save(`blog-post-${Date.now()}.pdf`);
+  }, [post]);
+
+  const saveAsDoc = useCallback(() => {
+    if (!post) return;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Blog Post</title>
+<style>
+  body{font-family:ui-serif,Georgia,Cambria,'Times New Roman',Times,serif;font-size:1.125rem;line-height:1.7777778;color:#475569;max-width:800px;margin:0 auto;padding:2rem;white-space:pre-wrap}
+  h1,h2,h3,h4{font-weight:700;color:#1e293b;line-height:1.3;margin:1.5em 0 0.5em}
+  h1{font-size:2.25em;font-weight:800;margin-top:0}
+  h2{font-size:1.5em}
+  h3{font-size:1.25em;font-weight:600}
+  p{margin:0 0 1.25em}
+  ul,ol{padding-left:1.625em;margin:0 0 1.25em}
+  li{margin:0.5em 0}
+  img{max-width:100%;height:auto;border-radius:0.5em;margin:2em 0}
+  a{color:#1e293b;font-weight:600;text-decoration:underline}
+  blockquote{font-style:italic;border-left:0.25rem solid #e2e8f0;padding-left:1em;margin:1.6em 0;color:#64748b}
+  table{font-size:0.875em;width:100%;border-collapse:collapse;margin:1.25em 0}
+  th,td{border:1px solid #e2e8f0;padding:0.75em 0.5em;text-align:left}
+  th{font-weight:600}
+  hr{margin:3em 0;border:none;border-top:1px solid #e2e8f0}
+  pre{background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5em;padding:1em;font-size:0.875em}
+  code{font-size:0.875em;font-weight:600;color:#1e293b}
+  pre code{font-weight:400}
+  strong{color:#1e293b}
+</style>
+</head>
+<body>${post.content}</body></html>`;
+    const blob = new Blob([html], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `blog-post-${Date.now()}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [post]);
+
   if (loading) return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
@@ -102,14 +175,34 @@ const Post = () => {
             <ArrowLeft className="h-6 w-6 text-slate-600" />
           </Button>
           {isAuthor && (
-            <Button
-              variant="outline"
-              className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 font-bold"
-              onClick={() => navigate(`/edit/${id}`)}
-            >
-              <Edit className="h-4 w-4" />
-              Edit My Post
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={saveAsPdf}
+                className="rounded-full border-slate-200 text-slate-600 hover:bg-slate-50"
+                title="Save as PDF"
+              >
+                <FileDown className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={saveAsDoc}
+                className="rounded-full border-slate-200 text-slate-600 hover:bg-slate-50"
+                title="Save as DOC"
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                className="gap-2 border-blue-200 text-blue-600 hover:bg-blue-50 font-bold"
+                onClick={() => navigate(`/edit/${id}`)}
+              >
+                <Edit className="h-4 w-4" />
+                Edit My Post
+              </Button>
+            </div>
           )}
         </div>
 

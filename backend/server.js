@@ -14,10 +14,7 @@ app.use(compression());
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || [
-      'https://inkwell-chronicles-42-production.up.railway.app',
-      'http://localhost:8080'
-    ],
+    origin: process.env.FRONTEND_URL || 'https://inkwell-chronicles-42.vercel.app',
     methods: ['GET', 'POST']
   }
 });
